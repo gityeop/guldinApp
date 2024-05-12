@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		DB01957C2BE5573400BA1548 /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB01957B2BE5573400BA1548 /* KeyboardViewController.swift */; };
+		DB0195802BE5573400BA1548 /* testKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DB0195792BE5573400BA1548 /* testKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DB6B37362BE51CB700CB14A0 /* guldinApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB6B37352BE51CB700CB14A0 /* guldinApp.swift */; };
 		DB6B37382BE51CB700CB14A0 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB6B37372BE51CB700CB14A0 /* ContentView.swift */; };
 		DB6B373A2BE51CB800CB14A0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DB6B37392BE51CB800CB14A0 /* Assets.xcassets */; };
@@ -17,6 +19,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		DB01957E2BE5573400BA1548 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DB6B372A2BE51CB700CB14A0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DB0195782BE5573400BA1548;
+			remoteInfo = testKeyboard;
+		};
 		DB6B37432BE51CB800CB14A0 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = DB6B372A2BE51CB700CB14A0 /* Project object */;
@@ -33,7 +42,24 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		DB6B376E2BE51CE200CB14A0 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				DB0195802BE5573400BA1548 /* testKeyboard.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		DB0195792BE5573400BA1548 /* testKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = testKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		DB01957B2BE5573400BA1548 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
+		DB01957D2BE5573400BA1548 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		DB6B37322BE51CB700CB14A0 /* guldin.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = guldin.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB6B37352BE51CB700CB14A0 /* guldinApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = guldinApp.swift; sourceTree = "<group>"; };
 		DB6B37372BE51CB700CB14A0 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -44,9 +70,17 @@
 		DB6B374C2BE51CB800CB14A0 /* guldinUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = guldinUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB6B37502BE51CB800CB14A0 /* guldinUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = guldinUITests.swift; sourceTree = "<group>"; };
 		DB6B37522BE51CB800CB14A0 /* guldinUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = guldinUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		DB87C2162BE9521E005D0525 /* testKeyboardDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = testKeyboardDebug.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		DB0195762BE5573400BA1548 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DB6B372F2BE51CB700CB14A0 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -71,12 +105,23 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		DB01957A2BE5573400BA1548 /* testKeyboard */ = {
+			isa = PBXGroup;
+			children = (
+				DB87C2162BE9521E005D0525 /* testKeyboardDebug.entitlements */,
+				DB01957B2BE5573400BA1548 /* KeyboardViewController.swift */,
+				DB01957D2BE5573400BA1548 /* Info.plist */,
+			);
+			path = testKeyboard;
+			sourceTree = "<group>";
+		};
 		DB6B37292BE51CB700CB14A0 = {
 			isa = PBXGroup;
 			children = (
 				DB6B37342BE51CB700CB14A0 /* guldin */,
 				DB6B37452BE51CB800CB14A0 /* guldinTests */,
 				DB6B374F2BE51CB800CB14A0 /* guldinUITests */,
+				DB01957A2BE5573400BA1548 /* testKeyboard */,
 				DB6B37332BE51CB700CB14A0 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -87,6 +132,7 @@
 				DB6B37322BE51CB700CB14A0 /* guldin.app */,
 				DB6B37422BE51CB800CB14A0 /* guldinTests.xctest */,
 				DB6B374C2BE51CB800CB14A0 /* guldinUITests.xctest */,
+				DB0195792BE5573400BA1548 /* testKeyboard.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -130,6 +176,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		DB0195782BE5573400BA1548 /* testKeyboard */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DB0195812BE5573400BA1548 /* Build configuration list for PBXNativeTarget "testKeyboard" */;
+			buildPhases = (
+				DB0195752BE5573400BA1548 /* Sources */,
+				DB0195762BE5573400BA1548 /* Frameworks */,
+				DB0195772BE5573400BA1548 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = testKeyboard;
+			productName = testKeyboard;
+			productReference = DB0195792BE5573400BA1548 /* testKeyboard.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		DB6B37312BE51CB700CB14A0 /* guldin */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = DB6B37562BE51CB800CB14A0 /* Build configuration list for PBXNativeTarget "guldin" */;
@@ -137,10 +200,12 @@
 				DB6B372E2BE51CB700CB14A0 /* Sources */,
 				DB6B372F2BE51CB700CB14A0 /* Frameworks */,
 				DB6B37302BE51CB700CB14A0 /* Resources */,
+				DB6B376E2BE51CE200CB14A0 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				DB01957F2BE5573400BA1548 /* PBXTargetDependency */,
 			);
 			name = guldin;
 			productName = guldin;
@@ -193,6 +258,9 @@
 				LastSwiftUpdateCheck = 1530;
 				LastUpgradeCheck = 1530;
 				TargetAttributes = {
+					DB0195782BE5573400BA1548 = {
+						CreatedOnToolsVersion = 15.3;
+					};
 					DB6B37312BE51CB700CB14A0 = {
 						CreatedOnToolsVersion = 15.3;
 					};
@@ -208,11 +276,12 @@
 			};
 			buildConfigurationList = DB6B372D2BE51CB700CB14A0 /* Build configuration list for PBXProject "guldin" */;
 			compatibilityVersion = "Xcode 14.0";
-			developmentRegion = en;
+			developmentRegion = ko;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				ko,
 			);
 			mainGroup = DB6B37292BE51CB700CB14A0;
 			productRefGroup = DB6B37332BE51CB700CB14A0 /* Products */;
@@ -222,11 +291,19 @@
 				DB6B37312BE51CB700CB14A0 /* guldin */,
 				DB6B37412BE51CB800CB14A0 /* guldinTests */,
 				DB6B374B2BE51CB800CB14A0 /* guldinUITests */,
+				DB0195782BE5573400BA1548 /* testKeyboard */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		DB0195772BE5573400BA1548 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DB6B37302BE51CB700CB14A0 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -253,6 +330,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		DB0195752BE5573400BA1548 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DB01957C2BE5573400BA1548 /* KeyboardViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DB6B372E2BE51CB700CB14A0 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -282,6 +367,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		DB01957F2BE5573400BA1548 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DB0195782BE5573400BA1548 /* testKeyboard */;
+			targetProxy = DB01957E2BE5573400BA1548 /* PBXContainerItemProxy */;
+		};
 		DB6B37442BE51CB800CB14A0 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = DB6B37312BE51CB700CB14A0 /* guldin */;
@@ -295,6 +385,59 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		DB0195822BE5573400BA1548 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
+				CODE_SIGN_ENTITLEMENTS = testKeyboard/testKeyboardDebug.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 79Q5RV23F9;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = testKeyboard/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = testKeyboard;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = practice101.guldin.testKeyboard;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DB0195832BE5573400BA1548 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 79Q5RV23F9;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = testKeyboard/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = testKeyboard;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = practice101.guldin.testKeyboard;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		DB6B37542BE51CB800CB14A0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -417,11 +560,13 @@
 		DB6B37572BE51CB800CB14A0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"guldin/Preview Content\"";
+				DEVELOPMENT_TEAM = 79Q5RV23F9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -429,6 +574,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -445,11 +591,13 @@
 		DB6B37582BE51CB800CB14A0 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"guldin/Preview Content\"";
+				DEVELOPMENT_TEAM = 79Q5RV23F9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -457,6 +605,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -545,6 +694,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		DB0195812BE5573400BA1548 /* Build configuration list for PBXNativeTarget "testKeyboard" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DB0195822BE5573400BA1548 /* Debug */,
+				DB0195832BE5573400BA1548 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		DB6B372D2BE51CB700CB14A0 /* Build configuration list for PBXProject "guldin" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

@@ -1,0 +1,1319 @@
+import UIKit
+import CoreHaptics
+import SwiftUI
+
+class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
+    enum KeyType: Equatable {
+        case character
+        case space
+        case backspace
+        case custom(() -> Void)
+
+        static func == (lhs: KeyCap.KeyType, rhs: KeyCap.KeyType) -> Bool {
+            switch (lhs, rhs) {
+            case (.character, .character), (.space, .space), (.backspace, .backspace):
+                return true
+            case (.custom(_), .custom(_)):
+                // 클로저 비교는 가능하지 않으므로, 동일성을 확인할 수 있는 다른 방법이 필요
+                // 예: 클로저를 감싸는 객체의 identity를 비교
+                return false
+            default:
+                return false
+            }
+        }
+    }
+
+    var defaultCharacter: String
+    var slideUpCharacter: String?
+    var slideDownCharacter: String?
+    var slideLeftCharacter: String?
+    var slideRightCharacter: String?
+    var slideUpRightCharacter: String?
+    var slideDownLeftCharacter: String?
+    var slideLeftRightCharacter: String?
+    var slideRightLeftCharacter: String?
+    var keyType: KeyType
+    private var deleteTimer: Timer?
+    var currentHangul: HangulMaker?
+    private var slideUpLabel: UILabel!
+    private var slideDownLabel: UILabel!
+    private var slideLeftLabel: UILabel!
+    private var slideRightLabel: UILabel!
+    var enableInputClicksWhenVisible: Bool {
+        return true
+    }
+
+    init(defaultCharacter: String, slideUpCharacter: String? = nil, slideDownCharacter: String? = nil, slideLeftCharacter: String? = nil, slideRightCharacter: String? = nil,slideUpRightCharacter: String? = nil, slideDownLeftCharacter: String? = nil, slideLeftRightCharacter: String? = nil, slideRightLeftCharacter: String? = nil, keyType: KeyType = .character) {
+        self.defaultCharacter = defaultCharacter
+        self.slideUpCharacter = slideUpCharacter
+        self.slideDownCharacter = slideDownCharacter
+        self.slideLeftCharacter = slideLeftCharacter
+        self.slideRightCharacter = slideRightCharacter
+        self.slideUpRightCharacter = slideUpRightCharacter
+        self.slideDownLeftCharacter = slideDownLeftCharacter
+        self.slideLeftRightCharacter = slideLeftRightCharacter
+        self.slideRightLeftCharacter = slideRightLeftCharacter
+
+        self.keyType = keyType
+        super.init(frame: .zero)
+        self.setupButton()
+    }
+
+    required init?(coder: NSCoder) {
+        self.defaultCharacter = ""
+        self.slideUpCharacter = nil
+        self.slideDownCharacter = nil
+        self.slideLeftCharacter = nil
+        self.slideRightCharacter = nil
+        self.slideUpRightCharacter = nil
+        self.slideDownLeftCharacter = nil
+        self.slideLeftRightCharacter = nil
+        self.slideRightLeftCharacter = nil
+        self.keyType = .character
+        super.init(coder: coder)
+        self.setupButton()
+    }
+
+    private var initialTouchPoint: CGPoint?
+    private var intermediateDirection: UISwipeGestureRecognizer.Direction?
+    private var panGesture: UIPanGestureRecognizer!
+    private var isDualDrag = false
+    private var hasInsertedText = false
+    private var lastCharacter: String?
+    var inputText: String?
+    private var temporaryLabel: UILabel?
+    private let thresholdDistance: CGFloat = 5.0  // 슬라이드 감도
+    private let cursorThreshold: CGFloat = 10
+    private var pendingDualSwipe: (UISwipeGestureRecognizer.Direction, UISwipeGestureRecognizer.Direction)? // 플래그 변경
+    private var repeatTimer: Timer?
+    private var lastDirection: String?
+    private var lastMoveAmount: Int?
+    private var accumulatedTranslation: CGFloat = 0  // 누적 이동 거리
+    private func setupButton() {
+        switch keyType {
+        case .character, .custom(_):
+            self.setTitle(defaultCharacter, for: .normal)
+        case .space:
+            self.setTitle("␣", for: .normal)
+        case .backspace:
+            self.setTitle("⌫", for: .normal)
+        }
+        self.backgroundColor = .systemGray2
+        self.translatesAutoresizingMaskIntoConstraints = false
+        setupSlideLabels()
+        self.addTarget(self, action: #selector(keyPressed), for: .touchUpInside)
+        self.addTarget(self, action: #selector(touchDown), for: .touchDown)
+        self.addTarget(self, action: #selector(touchUp), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+
+        setupDragGesture()
+        setupLongPressGesture()
+    }
+    @objc private func touchDown() {
+        self.backgroundColor = .systemGray4 // 터치 시 색상
+    }
+
+    @objc private func touchUp() {
+        switch keyType {
+        case .backspace:
+            self.backgroundColor = .systemGray2 // 백스페이스 버튼의 기본 색상
+        case .space:
+            self.backgroundColor = .white // 스페이스 버튼의 기본 색상
+        case .custom(_):
+            self.backgroundColor = .systemGray2 // 커스텀 버튼의 기본 색상
+        default:
+            self.backgroundColor = .white// 일반 문자 버튼의 기본 색상
+            
+        }
+    }
+    private func setupSlideLabels() {
+           slideUpLabel = createSlideLabel(with: slideUpCharacter)
+           slideDownLabel = createSlideLabel(with: slideDownCharacter)
+           slideLeftLabel = createSlideLabel(with: slideLeftCharacter)
+           slideRightLabel = createSlideLabel(with: slideRightCharacter)
+
+           // Add labels to the button
+           addSubview(slideUpLabel)
+           addSubview(slideDownLabel)
+           addSubview(slideLeftLabel)
+           addSubview(slideRightLabel)
+       }
+
+       private func createSlideLabel(with text: String?) -> UILabel {
+           let label = UILabel()
+           label.text = text
+           label.textAlignment = .center
+           label.font = UIFont.systemFont(ofSize: 12)
+           label.textColor = UIColor.gray.withAlphaComponent(0.5)
+           label.translatesAutoresizingMaskIntoConstraints = true
+           return label
+       }
+
+    override func layoutSubviews() {
+            super.layoutSubviews()
+            slideUpLabel.frame = CGRect(x: bounds.midX - 10, y: -4, width: 20, height: 20)
+            slideDownLabel.frame = CGRect(x: bounds.midX - 10, y: bounds.height-17, width: 20, height: 20)
+            slideLeftLabel.frame = CGRect(x: 5, y: bounds.midY - 10, width: 20, height: 20)
+            slideRightLabel.frame = CGRect(x: bounds.width-23, y: bounds.midY - 10, width: 20, height: 20)
+        }
+    
+    private func setupDragGesture() {
+        panGesture = UIPanGestureRecognizer(target: self, action: #selector(handleDrag(_:)))
+        self.addGestureRecognizer(panGesture)
+    }
+    private func setupLongPressGesture() {
+            let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+            longPressGesture.minimumPressDuration = 0.5 // 길게 눌렀을 때를 인식하는 시간 (0.5초)
+            self.addGestureRecognizer(longPressGesture)
+        }
+
+    @objc private func handleDrag(_ gesture: UIPanGestureRecognizer) {
+        let touchPoint = gesture.location(in: self)
+        
+        switch gesture.state {
+        case .began:
+            initialTouchPoint = touchPoint
+            intermediateDirection = nil
+            isDualDrag = false
+            hasInsertedText = false
+            pendingDualSwipe = nil
+            lastDirection = nil
+            accumulatedTranslation = 0
+            
+        case .changed:
+            guard let initialPoint = initialTouchPoint, !hasInsertedText else { return }
+            let deltaX = touchPoint.x - initialPoint.x
+            let deltaY = touchPoint.y - initialPoint.y
+            
+            let absDeltaX = abs(deltaX)
+            let absDeltaY = abs(deltaY)
+            let translation = gesture.translation(in: self).x
+            let deltaDirection = translation > 0 ? "right" : "left"
+            accumulatedTranslation += translation
+            
+            if intermediateDirection == nil {
+                // 첫 번째 방향 결정
+                if absDeltaX > absDeltaY && absDeltaX > thresholdDistance {
+                    intermediateDirection = (deltaX > 0 ? .right : .left)
+                } else if absDeltaY > thresholdDistance {
+                    intermediateDirection = (deltaY > 0 ? .down : .up)
+                }
+            } else if keyType == .backspace {
+                handleBackspaceSwipe(gesture: gesture)
+            } else if keyType == .space {
+                handleSpaceSwipe(translation: translation, gesture:  gesture)
+            } else {
+                // 두 번째 방향 결정
+                let newDirection: UISwipeGestureRecognizer.Direction
+                if absDeltaX > absDeltaY && absDeltaX > thresholdDistance {
+                    newDirection = (deltaX > 0 ? .right : .left)
+                } else if absDeltaY > thresholdDistance {
+                    newDirection = (deltaY > 0 ? .down : .up)
+                } else {
+                    return
+                }
+                
+                if newDirection != intermediateDirection {
+                    pendingDualSwipe = (intermediateDirection!, newDirection)
+                    isDualDrag = true
+                    showSlideCharacterLabel(character: getCharacterForDualSwipe(firstDirection: intermediateDirection!, secondDirection: newDirection))
+                } else {
+                    showSlideCharacterLabel(character: getCharacterForDirection(direction: newDirection))
+                }
+            }
+            
+        case .ended, .cancelled:
+            if let dualSwipeDirections = pendingDualSwipe {
+                handleDualSwipe(firstDirection: dualSwipeDirections.0, secondDirection: dualSwipeDirections.1)
+            } else if let direction = intermediateDirection {
+                handleSingleSwipe(direction: direction)
+            }
+            
+            if keyType == .backspace {
+                stopRepeatTimer()
+            }
+            
+            if keyType == .space {
+                resetGestureState()
+            }
+            
+            intermediateDirection = nil
+            initialTouchPoint = nil
+            isDualDrag = false
+            pendingDualSwipe = nil
+            hideSlideCharacter()
+            
+        default:
+            break
+        }
+    }
+
+    private func handleBackspaceSwipe(gesture: UIPanGestureRecognizer) {
+        if intermediateDirection == .down {
+            if gesture.state == .changed {
+                startRepeatTimer()
+            }
+        }
+    }
+
+    private func handleSpaceSwipe(translation: CGFloat, gesture: UIPanGestureRecognizer) {
+        while abs(accumulatedTranslation) >= cursorThreshold {
+            let cursorOffset = accumulatedTranslation > 0 ? 1 : -1
+            moveCursor(direction: cursorOffset)
+            accumulatedTranslation -= CGFloat(cursorOffset) * cursorThreshold
+        }
+        
+        lastDirection = translation > 0 ? "right" : "left"
+        gesture.setTranslation(.zero, in: self)
+    }
+
+    private func resetGestureState() {
+        accumulatedTranslation = 0
+        lastDirection = nil
+        initialTouchPoint = nil
+        intermediateDirection = nil
+    }
+
+    @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+        switch gesture.state {
+        case .began:
+            switch keyType {
+            case .backspace:
+                startDeleteTimer()
+            case .character:
+                break
+            case .space:
+                break
+            case .custom(_):
+                break
+            }
+
+        case .ended, .cancelled:
+            // 손을 뗄 때 타이머 중지
+            stopDeleteTimer()
+        default:
+            break
+        }
+    }
+    private func startRepeatTimer() {
+        
+        stopRepeatTimer() // Ensure any existing timer is stopped
+        repeatTimer = Timer.scheduledTimer(timeInterval: 0.3, target: self, selector: #selector(deleteWordRepeatedly), userInfo: nil, repeats: true)
+    }
+
+    private func stopRepeatTimer() {
+        repeatTimer?.invalidate()
+        repeatTimer = nil
+    }
+
+    @objc private func deleteWordRepeatedly() {
+        UIDevice.current.playInputClick()
+        vibrateDevice()
+        deleteWord()
+    }
+
+        private func startDeleteTimer() {
+            deleteTimer = Timer.scheduledTimer(timeInterval: 0.07, target: self, selector: #selector(deleteCharacter), userInfo: nil, repeats: true)
+        }
+
+        private func stopDeleteTimer() {
+            deleteTimer?.invalidate()
+            deleteTimer = nil
+        }
+
+        @objc private func deleteCharacter() {
+            UIDevice.current.playInputClick()
+            vibrateDevice()
+            deleteText()
+        }
+    private func handleSingleSwipe(direction: UISwipeGestureRecognizer.Direction) {
+        UIDevice.current.playInputClick()
+        vibrateDevice()
+        var characterToInsert: String? = nil
+
+        switch direction {
+        case .up:
+            switch keyType {
+        case .backspace:
+            
+           deleteText()
+
+           default:
+               characterToInsert = slideUpCharacter
+           }
+        case .down:
+            switch keyType {
+                case .backspace:
+                                
+                   deleteWord()
+
+                   default:
+                       characterToInsert = slideDownCharacter
+                   }
+        case .left:
+            characterToInsert = slideLeftCharacter
+        case .right:
+            characterToInsert = slideRightCharacter
+        default:
+            break
+        }
+
+        if let character = characterToInsert, !hasInsertedText {
+            print("Inserted1")
+            insertText(character)
+            hasInsertedText = true
+            lastCharacter = character
+            showSlideCharacterLabel(character: character)
+        }
+    }
+
+    private func handleDualSwipe(firstDirection: UISwipeGestureRecognizer.Direction, secondDirection: UISwipeGestureRecognizer.Direction) {
+        UIDevice.current.playInputClick()
+        vibrateDevice()
+        var characterToInsert: String? = nil
+
+        switch (firstDirection, secondDirection) {
+        case (.up, .right):
+            characterToInsert = slideUpRightCharacter
+        case (.down, .left):
+            characterToInsert = slideDownLeftCharacter
+        case (.left, .right):
+            characterToInsert = slideLeftRightCharacter
+        case (.right, .left):
+            characterToInsert = slideRightLeftCharacter
+        default:
+            break
+        }
+
+        if let character = characterToInsert, !hasInsertedText {
+            print("Inserted2")
+            insertText(character)
+            hasInsertedText = true
+            lastCharacter = character
+            showSlideCharacterLabel(character: character)
+        }
+    }
+    private func getCharacterForDirection(direction: UISwipeGestureRecognizer.Direction) -> String? {
+        switch direction {
+        case .up:
+            return slideUpCharacter
+        case .down:
+            return slideDownCharacter
+        case .left:
+            return slideLeftCharacter
+        case .right:
+            return slideRightCharacter
+        default:
+            return nil
+        }
+    }
+    private func showSlideCharacter(direction: UISwipeGestureRecognizer.Direction) {
+        var character: String? = nil
+
+        switch direction {
+        case .up:
+            character = slideUpCharacter
+        case .down:
+            character = slideDownCharacter
+        case .left:
+            character = slideLeftCharacter
+        case .right:
+            character = slideRightCharacter
+        default:
+            character = nil
+        }
+
+        showSlideCharacterLabel(character: character)
+    }
+
+    private func showDualSlideCharacter(char: String) {
+        showSlideCharacterLabel(character: char)
+    }
+    private func getCharacterForDualSwipe(firstDirection: UISwipeGestureRecognizer.Direction, secondDirection: UISwipeGestureRecognizer.Direction) -> String? {
+            switch (firstDirection, secondDirection) {
+            case (.up, .right):
+                return slideUpRightCharacter
+            case (.down, .left):
+                return slideDownLeftCharacter
+            case (.left, .right):
+                return slideLeftRightCharacter
+            case (.right, .left):
+                return slideRightLeftCharacter
+            default:
+                return nil
+            }
+        }
+    private func showSlideCharacterLabel(character: String?) {
+        if let char = character {
+            if temporaryLabel == nil {
+                temporaryLabel = UILabel()
+                temporaryLabel?.font = UIFont.systemFont(ofSize: 22)
+                temporaryLabel?.textAlignment = .center
+                temporaryLabel?.backgroundColor = UIColor.white.withAlphaComponent(1)
+                temporaryLabel?.layer.cornerRadius = 5
+                temporaryLabel?.layer.masksToBounds = true
+                addSubview(temporaryLabel!)
+            }
+
+            temporaryLabel?.text = char
+            temporaryLabel?.frame = CGRect(
+                x: self.bounds.midX - 20,
+                y: self.bounds.minY - 0,
+                width: 40,
+                height: 40
+            )
+            temporaryLabel?.isHidden = false
+        }
+    }
+
+    private func hideSlideCharacter() {
+        temporaryLabel?.isHidden = true
+    }
+
+    @objc func keyPressed() {
+        UIDevice.current.playInputClick()
+        vibrateDevice()
+
+        switch keyType {
+        case .character:
+            insertText(defaultCharacter)
+        case .backspace:
+            deleteText()
+        case .space:
+            insertSpace(defaultCharacter)
+        case .custom(let action):
+            action()
+        }
+
+        hideSlideCharacter()
+    }
+    private func moveCursor(direction offset: Int) {
+        guard let keyboardVC = findKeyboardViewController() else { return }
+        keyboardVC.textDocumentProxy.adjustTextPosition(byCharacterOffset: offset)
+        UIDevice.current.playInputClick()
+        vibrateDevice()
+        
+    }
+    
+    private func findKeyboardViewController() -> KeyboardViewController? {
+        var nextResponder: UIResponder? = self
+        while let responder = nextResponder {
+            if let keyboardVC = responder as? KeyboardViewController {
+                return keyboardVC
+            }
+            nextResponder = responder.next
+        }
+        return nil
+    }
+
+    fileprivate func insertText(_ text: String) {
+            guard !text.isEmpty else { return }
+            var nextResponder: UIResponder? = self
+            while let responder = nextResponder {
+                if let inputViewController = responder as? KeyboardViewController {
+                    inputViewController.processInput(text)
+                    break
+                }
+                nextResponder = responder.next
+            }
+        }
+        fileprivate func deleteText() {
+            var nextResponder: UIResponder? = self
+            while let responder = nextResponder {
+                if let inputViewController = responder as? KeyboardViewController {
+                    inputViewController.deleteBackward()
+                    
+                    break
+                }
+                nextResponder = responder.next
+            }
+        }
+
+    fileprivate func insertSpace(_ text: String) {
+            guard !text.isEmpty else { return }
+            var nextResponder: UIResponder? = self
+            while let responder = nextResponder {
+                if let inputViewController = responder as? KeyboardViewController {
+                    inputViewController.processInput(" ")
+                    break
+                }
+                nextResponder = responder.next
+            }
+        }
+
+        fileprivate func deleteAll() {
+            var nextResponder: UIResponder? = self
+            while let responder = nextResponder {
+                if let inputViewController = responder as? KeyboardViewController {
+                    inputViewController.deleteAllText()
+                    break
+                }
+                nextResponder = responder.next
+            }
+        }
+
+        fileprivate func deleteWord() {
+            var nextResponder: UIResponder? = self
+            while let responder = nextResponder {
+                if let inputViewController = responder as? KeyboardViewController {
+                    inputViewController.deleteWord()
+                    break
+                }
+                nextResponder = responder.next
+            }
+        }
+
+        fileprivate func deleteLine() {
+            var nextResponder: UIResponder? = self
+            while let responder = nextResponder {
+                if let inputViewController = responder as? KeyboardViewController {
+                    inputViewController.deleteLine()
+                    break
+                }
+                nextResponder = responder.next
+            }
+        }
+    private func vibrateDevice() {
+        let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
+        }
+}
+
+import UIKit
+
+class KeyboardViewController: UIInputViewController {
+    var characterButtons: [KeyCap] = []
+    var keyCaps: [KeyCap] = []
+    var currentHangul = HangulMaker()
+    private let hapticGenerator = UIImpactFeedbackGenerator(style: .light)
+    private var deleteTimer: Timer?
+    var lastDocumentContext: String?
+    var isDecomposable: Bool = true  // 입력 시 자소 분리 가능 상태
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        configureKeyCaps()
+        setupKeyboardLayout()
+        hapticGenerator.prepare()
+
+        }
+    override func textWillChange(_ textInput: UITextInput?) {
+        super.textWillChange(textInput)
+        // 입력이 화면에 나타나기 전에 필요한 사전 처리를 수행합니다.
+        // 예: 입력 버퍼 초기화, 상태 업데이트 등
+    }
+    override func textDidChange(_ textInput: UITextInput?) {
+        super.textDidChange(textInput)
+        // 입력이 화면에 반영된 후에 호출됩니다.
+        // 여기서 checkAndCallAfterDelete 함수를 호출하여 문서 컨텍스트의 변경을 감지하고 처리합니다.
+        checkAndCallAfterDelete()
+    }
+
+
+    private func checkAndCallAfterDelete() {
+        guard let proxy = textDocumentProxy as? UITextDocumentProxy else { return }
+        let currentContext = proxy.documentContextBeforeInput ?? ""
+
+        // 커서가 이동하거나 키보드가 해제된 경우 함수를 호출
+        if lastDocumentContext != currentContext {
+            currentHangul.afterDelete()
+            isDecomposable = false  // 커서 이동이나 다른 입력 발생 시 자소 분리 상태 해제
+        }
+
+        lastDocumentContext = currentContext
+    }
+
+    func configureKeyCaps() {
+        keyCaps = [
+                   KeyCap(
+                    defaultCharacter: "ㄱ", slideUpCharacter: "ㄲ", slideDownCharacter: "ㅋ",
+                          slideLeftCharacter: "ㅋ",
+                          slideRightCharacter: "ㅋ",
+                         slideUpRightCharacter: "ㄲ",
+                         slideDownLeftCharacter: "ㅋ",
+                          slideLeftRightCharacter: "ㅋ",
+                          slideRightLeftCharacter: "ㅋ"
+                         ),
+                   KeyCap(defaultCharacter: "ㄴ",
+                          slideUpCharacter: "ㄸ",
+                          slideDownCharacter: "ㄷ",
+                          slideLeftCharacter: "ㅌ",
+                          slideRightCharacter: "ㅌ"),
+                   KeyCap(defaultCharacter: "ㅢ",
+                          slideUpCharacter: "ㅚ",
+                          slideDownCharacter: "ㅟ",
+                          slideLeftCharacter: "ㅝ",
+                          slideRightCharacter: "ㅘ",
+                         slideUpRightCharacter: "ㅝ"),
+                   KeyCap(defaultCharacter: "⌫", keyType: .backspace),
+                   KeyCap(defaultCharacter: "ㄹ",
+                          slideUpCharacter: "^",
+                          slideDownCharacter: "_",
+                          slideLeftCharacter: "=", slideRightCharacter: "-"),
+                   KeyCap(defaultCharacter: "ㅁ",
+                          slideUpCharacter: "ㅃ",
+                          slideDownCharacter: "ㅂ",
+                          slideLeftCharacter: "ㅍ", slideRightCharacter: "ㅍ"),
+                   KeyCap(defaultCharacter: "ㅣ",
+                          slideUpCharacter: "ㅗ",
+                          slideDownCharacter: "ㅜ",
+                          slideLeftCharacter: "ㅓ", slideRightCharacter: "ㅏ",
+                         slideUpRightCharacter: "ㅘ", slideDownLeftCharacter: "ㅝ"),
+                   KeyCap(defaultCharacter: "!",
+                          slideUpCharacter: "?",
+                          slideLeftCharacter: "~"),
+                   KeyCap(defaultCharacter: "ㅅ", slideUpCharacter: "ㅆ", slideDownCharacter: "2",
+                          slideLeftCharacter: "1", slideRightCharacter: "3"),
+                   KeyCap(defaultCharacter: "ㅇ",
+                          slideUpCharacter: "💩",
+                          slideDownCharacter: "5",
+                          slideLeftCharacter: "4", slideRightCharacter: "6"),
+                   KeyCap(defaultCharacter: "ㅡ",
+                          slideUpCharacter: "ㅙ",
+                          slideDownCharacter: "ㅞ",
+                          slideLeftCharacter: "ㅔ", slideRightCharacter: "ㅐ",
+                          slideUpRightCharacter: "ㅙ",
+                          slideDownLeftCharacter: "ㅞ",
+                         slideLeftRightCharacter: "ㅖ",
+                         slideRightLeftCharacter: "ㅒ"),
+                   KeyCap(defaultCharacter: "😘",
+                          slideUpCharacter: "🥰",
+                          slideDownCharacter: "💤",
+                          slideLeftCharacter: "😍",
+                          slideDownLeftCharacter: "😴",
+                          slideLeftRightCharacter: "🫶"
+                          ),
+                   KeyCap(defaultCharacter: "ㅈ",
+                          slideUpCharacter: "ㅉ",
+                          slideDownCharacter: "~",
+                          slideLeftCharacter: "ㅊ", slideRightCharacter: "ㅊ"),
+                   KeyCap(defaultCharacter: "ㅎ",
+                          slideUpCharacter: "0",
+                          slideDownCharacter: "8",
+                          slideLeftCharacter: "7", slideRightCharacter: "9"),
+                   KeyCap(defaultCharacter: "",
+                          slideUpCharacter: "ㅛ",
+                          slideDownCharacter: "ㅠ",
+                          slideLeftCharacter: "ㅕ",
+                          slideRightCharacter: "ㅑ",
+                          slideUpRightCharacter: "ㅛ",
+                          slideDownLeftCharacter: "ㅠ",
+                         slideLeftRightCharacter: "ㅖ",
+                         slideRightLeftCharacter: "ㅒ"),
+                   KeyCap(defaultCharacter: "🤓",
+                          slideUpCharacter: "💨",
+                          slideDownCharacter: "🥺",
+                          slideLeftCharacter: "🥹",
+                          slideDownLeftCharacter: "💝",
+                         slideLeftRightCharacter: "💗")
+               ]
+
+
+        assignButtonTitles()
+    }
+    func setupKeyboardLayout() {
+        let stackView = UIStackView()
+        stackView.axis = .vertical
+        stackView.distribution = .equalSpacing
+        stackView.alignment = .fill
+        stackView.spacing = 2 // 간격을 줄임
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(stackView)
+
+        // 키보드의 전체 높이를 적절하게 설정 (예: 250 포인트)
+        let keyboardHeight: CGFloat = 235
+        view.heightAnchor.constraint(equalToConstant: keyboardHeight).isActive = true
+
+        NSLayoutConstraint.activate([
+            stackView.leftAnchor.constraint(equalTo: view.leftAnchor, constant: 5),
+            stackView.rightAnchor.constraint(equalTo: view.rightAnchor, constant: -5),
+            stackView.topAnchor.constraint(equalTo: view.topAnchor, constant: 5),
+            stackView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -5)
+        ])
+        
+        let numberOfRows = 5
+        let numberOfButtonsPerRow = 4
+        for row in 0..<numberOfRows {
+            let rowStack = UIStackView()
+            rowStack.axis = .horizontal
+            rowStack.distribution = .equalSpacing
+            rowStack.alignment = .fill
+            rowStack.spacing = 3 // 간격을 줄임
+            rowStack.layoutMargins = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 4) // 원하는 여백으로 변경
+            rowStack.isLayoutMarginsRelativeArrangement = true
+            stackView.addArrangedSubview(rowStack)
+
+            if row == 4 {
+                for col in 0..<5 {
+                    if col == 0 {
+                        // 5행 1열에 숫자 키패드로 전환하는 버튼을 추가
+                        let numberPadButton = KeyCap(defaultCharacter: "#", keyType: .custom(switchToNumberPad))
+                        numberPadButton.setTitle("123", for: .normal)
+                                              
+                        setupButtonAppearance(button: numberPadButton)
+                        rowStack.addArrangedSubview(numberPadButton)
+                        numberPadButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 10/100).isActive = true
+                        numberPadButton.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 1 / 6).isActive = true
+                        numberPadButton.backgroundColor = .systemGray2
+                        continue
+                    }else if col == 2 {
+                        let spaceButton = KeyCap(defaultCharacter: " ", keyType: .space)
+                        spaceButton.setTitle("space", for: .normal)
+                        rowStack.addArrangedSubview(spaceButton)
+                        spaceButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 45/100).isActive = true
+                        spaceButton.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 1 / 6).isActive = true
+                        spaceButton.backgroundColor = .white
+                        spaceButton.layer.cornerRadius = 5
+                        spaceButton.setTitleColor(.black, for: .normal)
+                        spaceButton.setTitleColor(.black, for: .highlighted)
+                        spaceButton.titleLabel?.font = .systemFont(ofSize: 16)
+                        spaceButton.layer.shadowColor = UIColor.black.cgColor
+                        spaceButton.layer.shadowOffset = CGSize(width: 0, height: 1)
+                        spaceButton.layer.shadowOpacity = 0.5
+                        spaceButton.layer.shadowRadius = 0
+                        continue
+                    } else if col == 4 {
+                        let returnButton = KeyCap(defaultCharacter: "\n", keyType: .custom(handleReturn))
+                        returnButton.setTitle("return", for: .normal)
+                        returnButton.backgroundColor = .systemGray2
+                        returnButton.layer.cornerRadius = 5
+                        returnButton.titleLabel?.font = .systemFont(ofSize: 15)
+                        returnButton.setTitleColor(.black, for: .normal)
+                        returnButton.setTitleColor(.black, for: .highlighted)
+                        returnButton.layer.shadowColor = UIColor.black.cgColor
+                        returnButton.layer.shadowOffset = CGSize(width: 0, height: 1)
+                        returnButton.layer.shadowOpacity = 0.5
+                        returnButton.layer.shadowRadius = 0
+                        rowStack.addArrangedSubview(returnButton)
+                        returnButton.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 1 / 6).isActive = true
+                        returnButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 20/100).isActive = true
+                        continue
+                    }
+                    
+                    let button = KeyCap(defaultCharacter: "")
+                    setupButtonAppearance(button: button)
+                    rowStack.addArrangedSubview(button)
+                    button.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 1 / 6).isActive = true
+                    button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 10/100).isActive = true
+                }
+            } else {
+                for col in 0..<numberOfButtonsPerRow {
+                    let button = keyCaps[(row * numberOfButtonsPerRow + col) % keyCaps.count]
+
+                    setupButtonAppearance(button: button)
+                    rowStack.addArrangedSubview(button)
+                    button.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 1 / 5.2).isActive = true
+                    button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 26/100).isActive = true
+                    if row != 4 && col == 3{ //마지막 열
+                        button.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 1 / 5.2).isActive = true
+                        button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 17/100).isActive = true
+                    }
+                    
+                    characterButtons.append(button)
+                    if row == 0 && col == 3 {
+                        button.backgroundColor = .systemGray2
+                        button.titleLabel?.font = UIFont.systemFont(ofSize: 28, weight: .light)
+                    }
+                }
+            }
+        }
+    }
+    @objc func switchToNumberPad() {
+        // 숫자 키패드로 전환하는 액션 구현
+        print("Switching to number pad")
+    }
+    func setupButtonAppearance(button: KeyCap) {
+        button.backgroundColor = .white
+        button.layer.cornerRadius = 5
+        button.setTitleColor(.black, for: .normal)
+        button.setTitleColor(.black, for: .highlighted)
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOffset = CGSize(width: 0, height: 1)
+        button.layer.shadowOpacity = 0.5
+        button.layer.shadowRadius = 0
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 16)
+    }
+    
+    @objc func handleReturn() {
+        currentHangul.afterDelete()
+        textDocumentProxy.insertText("\n")
+    }
+
+    func assignButtonTitles() {
+        for (index, button) in characterButtons.enumerated() {
+            if index < keyCaps.count {
+                let keyCap = keyCaps[index]
+                button.defaultCharacter = keyCap.defaultCharacter
+                button.setTitle(keyCap.defaultCharacter, for: .normal)
+                button.slideUpCharacter = keyCap.slideUpCharacter
+                button.slideDownCharacter = keyCap.slideDownCharacter
+                button.slideLeftCharacter = keyCap.slideLeftCharacter
+                button.slideRightCharacter = keyCap.slideRightCharacter
+                button.slideUpRightCharacter = keyCap.slideUpRightCharacter
+                button.slideDownLeftCharacter = keyCap.slideDownLeftCharacter
+                button.slideLeftRightCharacter = keyCap.slideLeftRightCharacter
+                button.slideRightLeftCharacter = keyCap.slideRightLeftCharacter
+                button.keyType = keyCap.keyType
+            }
+        }
+    }
+
+    func processInput(_ input: String) {
+        for character in input {
+            let result = currentHangul.commit(character)
+            if result == 1 {
+                textDocumentProxy.deleteBackward()
+            } else if result == 2 {
+                textDocumentProxy.deleteBackward()
+            }
+        }
+
+        if currentHangul.textStorage != "" {
+            let result = currentHangul.textStorage
+            textDocumentProxy.insertText(result)
+        }
+    }
+
+
+    func deleteBackward() {
+        let prevState = currentHangul.state
+        
+        currentHangul.delete()
+        
+        if prevState == 0 {
+            textDocumentProxy.deleteBackward()
+        } else if prevState == 1 {
+            if currentHangul.state == 0 {
+                textDocumentProxy.deleteBackward()
+            } else {
+                textDocumentProxy.insertText(currentHangul.textStorage)
+            }
+        } else if prevState == 2 {
+            if currentHangul.state == 1 {
+                textDocumentProxy.deleteBackward()
+                textDocumentProxy.insertText(currentHangul.textStorage)
+            } else {
+                textDocumentProxy.insertText(currentHangul.textStorage)
+            }
+        } else if prevState == 3 {
+            if currentHangul.state == 2 {
+                textDocumentProxy.deleteBackward()
+                textDocumentProxy.insertText(currentHangul.textStorage)
+            } else {
+                textDocumentProxy.insertText(currentHangul.textStorage)
+            }
+        }
+    }
+    func deleteAllText() {
+        if let documentContext = textDocumentProxy.documentContextBeforeInput {
+            for _ in documentContext {
+                currentHangul.afterDelete()
+                textDocumentProxy.deleteBackward()
+            }
+        }
+    }
+    func deleteWord() {
+        guard let documentContext = textDocumentProxy.documentContextBeforeInput, !documentContext.isEmpty else {
+            print("Document context is empty or nil")
+            return
+        }
+        print("Current document context: '\(documentContext)'")
+
+        // 연속된 같은 특수문자 포함하여 한글 자음, 모음, 숫자, 영문을 구분하는 정규 표현식
+        let pattern = "[가-힣]+|[ㄱ-ㅎ]+|[ㅏ-ㅣ]+|\\d+|[A-Za-z]+|((\\p{Punct})\\2*)"
+        let regex = try! NSRegularExpression(pattern: pattern, options: [])
+
+        let results = regex.matches(in: documentContext, options: [], range: NSRange(documentContext.startIndex..., in: documentContext))
+
+        if let lastResult = results.last, let range = Range(lastResult.range, in: documentContext) {
+            let wordToDelete = documentContext[range]
+            deleteCharacters(count: wordToDelete.count)
+        } else {
+            // 매칭 결과가 없을 경우 가장 마지막 문자 삭제
+            deleteCharacters(count: 1)
+        }
+
+        // 공백 또는 줄바꿈 문자가 마지막에 있을 경우 추가로 삭제 처리
+        if documentContext.hasSuffix(" ") || documentContext.hasSuffix("\n") {
+            deleteCharacters(count: 1)
+        }
+    }
+
+    private func deleteCharacters(count: Int) {
+        for _ in 0..<count {
+            currentHangul.afterDelete()
+            textDocumentProxy.deleteBackward()
+        }
+    }
+
+    
+        func deleteLine() {
+            if let documentContext = textDocumentProxy.documentContextBeforeInput {
+                let lines = documentContext.split(separator: "\n")
+                if let lastLine = lines.last {
+                    for _ in lastLine {
+                        currentHangul.afterDelete()
+                        textDocumentProxy.deleteBackward()
+                    }
+                }
+
+            }
+        }
+
+}
+
+import Foundation
+
+class HangulMaker {
+    private var cho: Character = "\u{0000}"
+    private var jun: Character = "\u{0000}"
+    private var jon: Character = "\u{0000}"
+    private var jonFlag: Character = "\u{0000}"
+    private var doubleJonFlag: Character = "\u{0000}"
+    var junFlag: Character = "\u{0000}"
+    var textDocumentProxy: UITextInput?
+    private let chos: [Int] = [0x3131, 0x3132, 0x3134, 0x3137, 0x3138, 0x3139, 0x3141, 0x3142, 0x3143, 0x3145, 0x3146, 0x3147, 0x3148, 0x3149, 0x314a, 0x314b, 0x314c, 0x314d, 0x314e]
+    private let juns: [Int] = [0x314f, 0x3150, 0x3151, 0x3152, 0x3153, 0x3154, 0x3155, 0x3156, 0x3157, 0x3158, 0x3159, 0x315a, 0x315b, 0x315c, 0x315d, 0x315e, 0x315f, 0x3160, 0x3161, 0x3162, 0x3163]
+    private let jons: [Int] = [0x0000, 0x3131, 0x3132, 0x3133, 0x3134, 0x3135, 0x3136, 0x3137, 0x3139, 0x313a, 0x313b, 0x313c, 0x313d, 0x313e, 0x313f, 0x3140, 0x3141, 0x3142, 0x3144, 0x3145, 0x3146, 0x3147, 0x3148, 0x314a, 0x314b, 0x314c, 0x314d, 0x314e]
+    
+    /**
+     * 0:""
+     * 1: 모음 입력상태
+     * 2: 모음 + 자음 입력상태
+     * 3: 모음 + 자음 + 모음입력상태(초 중 종성)
+     * 초성과 종성에 들어갈 수 있는 문자가 다르기 때문에 필요에 맞게 수정이 필요함.(chos != jons)
+     */
+    fileprivate var state = 0
+    var textStorage: String = ""
+    func afterDelete() {
+        setStateZero()
+        textStorage = String("")
+        clear()
+        state = 0
+    }
+    func clear() {
+        cho = "\u{0000}"
+        jun = "\u{0000}"
+        jon = "\u{0000}"
+        jonFlag = "\u{0000}"
+        doubleJonFlag = "\u{0000}"
+        junFlag = "\u{0000}"
+    }
+
+    func makeHan() -> Character {
+        if state == 0 {
+            return "\u{0000}"
+        }
+        if state == 1 {
+            return cho
+        }
+        let choIndex = chos.firstIndex(of: Int(cho.unicodeScalars.first!.value)) ?? -1
+        let junIndex = juns.firstIndex(of: Int(jun.unicodeScalars.first!.value)) ?? -1
+        let jonIndex = jons.firstIndex(of: Int(jon.unicodeScalars.first!.value)) ?? -1
+
+        let makeResult = 0xAC00 + 28 * 21 * choIndex + 28 * junIndex + jonIndex
+        return Character(UnicodeScalar(makeResult)!)
+    }
+
+    open func commit(_ c: Character) -> Int {
+            let cInt = Int(c.unicodeScalars.first!.value)
+            if !chos.contains(cInt) && !juns.contains(cInt) && !jons.contains(cInt) {
+                setStateZero()
+                textStorage = String(c)
+                clear()
+                state = 0
+                return 0
+            }
+            switch state {
+            case 0:
+                if juns.contains(cInt) { //ㅏ
+                    setStateZero()
+                    textStorage = String(c)
+                    clear()
+                } else { // ㅂ
+                    state = 1
+                    cho = c
+                    textStorage = String(cho)
+                }
+            case 1: // ㅂ
+                if chos.contains(cInt) { // ㅂㅂ
+                    setStateZero()
+                    textStorage = String(c)
+                    clear()
+                    cho = c
+                    
+                } else { // 바
+                    state = 2
+                    jun = c
+                    textStorage = String(makeHan())
+                    return 1 // 앞의 텍스트 지우기
+                }
+            case 2: //바
+                if jons.contains(cInt) {
+                    jon = c
+                    textStorage = String(makeHan())
+                    state = 3
+                    return 1
+                } else { //바ㅏ
+                    setStateZero()
+                    textStorage = String(c)
+                    clear()
+                    state = 0
+                    if chos.contains(cInt) {
+                        state = 1
+                        cho = c
+                    }
+                }
+            case 3: //받
+                if jons.contains(cInt) {
+                    if doubleJonEnable(c) { // 밟
+                        textStorage = String(makeHan())
+                        return 1
+                    } else { //발ㄹ
+                        setStateZero()
+                        textStorage = String(c)
+                        clear()
+                        state = 1
+                        cho = c
+                        textStorage = String(cho)
+                    }
+                } else if chos.contains(cInt) {
+                    setStateZero()
+                    textStorage = String(c)
+                    clear()
+                    state = 1
+                    cho = c
+                    textStorage = String(cho)
+                    
+                } else {
+                    var temp: Character = "\u{0000}"
+                    if doubleJonFlag == "\u{0000}" {
+                        temp = jon
+                        jon = "\u{0000}"
+                        setStateZero()
+//                        textStorage = String(temp) + String(c)
+                    } else {
+                        temp = doubleJonFlag
+                        jon = jonFlag
+//                        textStorage = String(removeFinalConsonant(hangul: makeHan()))
+                        setStateZero()
+//                        textStorage = String(temp) + String(c)
+                    }
+                    state = 2
+                    clear()
+                    cho = temp
+                    jun = c
+                    textStorage = removeFirstHangulSyllable(textStorage)
+                    
+                    textStorage.append(String(makeHan()))
+                    
+                    return 2
+                }
+
+            default:
+                break
+            }
+            return 0
+        }
+
+    func removeFirstHangulSyllable(_ string: String) -> String {
+        if string.isEmpty {
+            return string
+        }
+        
+        var index = string.startIndex
+        let firstSyllable = string[index]
+        
+        if firstSyllable.unicodeScalars.first?.value ?? 0 >= 0xAC00 && firstSyllable.unicodeScalars.first?.value ?? 0 <= 0xD7A3 {
+            index = string.index(index, offsetBy: 1)
+        } else {
+            while index < string.endIndex && string[index].unicodeScalars.first?.value ?? 0 < 0xAC00 || string[index].unicodeScalars.first?.value ?? 0 > 0xD7A3 {
+                index = string.index(index, offsetBy: 1)
+            }
+        }
+
+        return String(string[index...])
+    }
+
+
+    func commitSpace() {
+        setStateZero()
+        textStorage.append(" ")
+    }
+
+    open func setStateZero() {
+        if state == 0 {
+            return
+        }
+        if state == 1 {
+            state = 1
+            return
+        }
+        textStorage.append(String(makeHan()))
+        state = 0
+        clear()
+    }
+    open func removeFinalConsonant(hangul: Character) -> Character {
+        let unicode = hangul.unicodeScalars.first!.value
+        let base: UInt32 = 0xAC00
+        let choIndex = (unicode - base) / (21 * 28)
+        let junIndex = ((unicode - base) % (21 * 28)) / 28
+        let result = base + choIndex * 21 * 28 + junIndex * 28
+        return Character(UnicodeScalar(result)!)
+    }
+
+    open func delete() {
+            switch state {
+            case 0:
+                if !textStorage.isEmpty {
+                    textStorage.removeLast()
+                }
+            case 1:
+                cho = "\u{0000}"
+                state = 0
+                textStorage = ""
+            case 2:
+                if junFlag != "\u{0000}" {
+                    jun = junFlag
+                    junFlag = "\u{0000}"
+                    state = 2
+                    textStorage = String(makeHan())
+                } else {
+                    jun = "\u{0000}"
+                    junFlag = "\u{0000}"
+                    state = 1
+                    textStorage = String(cho)
+                }
+            case 3:
+                if doubleJonFlag == "\u{0000}" {
+                    jon = "\u{0000}"
+                    state = 2
+                } else {
+                    jon = jonFlag
+                    jonFlag = "\u{0000}"
+                    doubleJonFlag = "\u{0000}"
+                    state = 3
+                }
+                textStorage = String(makeHan())
+            default:
+                break
+            }
+        }
+    
+    func doubleJunEnable(_ c: Character) -> Bool {
+        switch jun {
+        case "ㅗ":
+            if c == "ㅏ" {
+                junFlag = jun
+                jun = "ㅘ"
+                return true
+            }
+            if c == "ㅐ" {
+                junFlag = jun
+                jun = "ㅙ"
+                return true
+            }
+            if c == "ㅣ" {
+                junFlag = jun
+                jun = "ㅚ"
+                return true
+            }
+            return false
+        case "ㅜ":
+            if c == "ㅓ" {
+                junFlag = jun
+                jun = "ㅝ"
+                return true
+            }
+            if c == "ㅔ" {
+                junFlag = jun
+                jun = "ㅞ"
+                return true
+            }
+            if c == "ㅣ" {
+                junFlag = jun
+                jun = "ㅟ"
+                return true
+            }
+            return false
+        case "ㅡ":
+            if c == "ㅣ" {
+                junFlag = jun
+                jun = "ㅢ"
+                return true
+            }
+            return false
+        default:
+            return false
+        }
+    }
+
+    func doubleJonEnable(_ c: Character) -> Bool {
+        jonFlag = jon
+        doubleJonFlag = c
+        switch jon {
+        case "ㄱ":
+            if c == "ㅅ" {
+                jon = "ㄳ"
+                return true
+            }
+            return false
+        case "ㄴ":
+            if c == "ㅈ" {
+                jon = "ㄵ"
+                return true
+            }
+            if c == "ㅎ" {
+                jon = "ㄶ"
+                return true
+            }
+            return false
+        case "ㄹ":
+            if c == "ㄱ" {
+                jon = "ㄺ"
+                return true
+            }
+            if c == "ㅁ" {
+                jon = "ㄻ"
+                return true
+            }
+            if c == "ㅂ" {
+                jon = "ㄼ"
+                return true
+            }
+            if c == "ㅅ" {
+                jon = "ㄽ"
+                return true
+            }
+            if c == "ㅌ" {
+                jon = "ㄾ"
+                return true
+            }
+            if c == "ㅍ" {
+                jon = "ㄿ"
+                return true
+            }
+            if c == "ㅎ" {
+                jon = "ㅀ"
+                return true
+            }
+            return false
+        case "ㅂ":
+            if c == "ㅅ" {
+                jon = "ㅄ"
+                return true
+            }
+            return false
+        default:
+            return false
+        }
+    }
+
+    func junAvailable() -> Bool {
+        return !["ㅙ", "ㅞ", "ㅢ", "ㅐ", "ㅔ", "ㅛ", "ㅒ", "ㅖ"].contains(jun)
+    }
+
+    func isDoubleJun() -> Bool {
+        return ["ㅙ", "ㅞ", "ㅚ", "ㅝ", "ㅟ", "ㅘ", "ㅢ"].contains(jun)
+    }
+}
+
