@@ -579,7 +579,32 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
 }
 
 import UIKit
+protocol KeyboardViewControllerDelegate: AnyObject {
+    func updateDecomposableState(isDecomposable: Bool)
+    func requestDecomposableState() -> Bool
+    func requestPreviousCharacter() -> Character?
+}
 
+extension KeyboardViewController: KeyboardViewControllerDelegate {
+    func updateDecomposableState(isDecomposable: Bool) {
+            self.isDecomposable = isDecomposable
+            print("Decomposable state updated to: \(self.isDecomposable)")
+        }
+    
+    func requestDecomposableState() -> Bool {
+        return isDecomposable
+    }
+
+    func requestPreviousCharacter() -> Character? {
+        guard let proxy = textDocumentProxy as? UITextDocumentProxy,
+              let documentContext = proxy.documentContextBeforeInput, !documentContext.isEmpty else {
+            return nil
+        }
+        let indexBeforeCursor = documentContext.index(before: documentContext.endIndex)
+        let realText = documentContext.index(before: indexBeforeCursor)
+        return documentContext[realText]
+    }
+}
 class KeyboardViewController: UIInputViewController {
     var characterButtons: [KeyCap] = []
     var keyCaps: [KeyCap] = []
@@ -588,13 +613,13 @@ class KeyboardViewController: UIInputViewController {
     private var deleteTimer: Timer?
     var lastDocumentContext: String?
     var isDecomposable: Bool = true  // 입력 시 자소 분리 가능 상태
-
+    weak var delegate: KeyboardViewControllerDelegate?
     override func viewDidLoad() {
         super.viewDidLoad()
         configureKeyCaps()
         setupKeyboardLayout()
         hapticGenerator.prepare()
-
+        currentHangul.delegate = self
         }
     override func textWillChange(_ textInput: UITextInput?) {
         super.textWillChange(textInput)
@@ -858,6 +883,7 @@ class KeyboardViewController: UIInputViewController {
     }
 
     func processInput(_ input: String) {
+        isDecomposable = true
         for character in input {
             let result = currentHangul.commit(character)
             if result == 1 {
@@ -884,18 +910,32 @@ class KeyboardViewController: UIInputViewController {
         } else if prevState == 1 {
             if currentHangul.state == 0 {
                 textDocumentProxy.deleteBackward()
-            } else {
+            } else if currentHangul.state == 3 {
+                textDocumentProxy.deleteBackward()
+                textDocumentProxy.deleteBackward()
+                textDocumentProxy.insertText(currentHangul.textStorage)
+            }
+            else {
                 textDocumentProxy.insertText(currentHangul.textStorage)
             }
         } else if prevState == 2 {
             if currentHangul.state == 1 {
                 textDocumentProxy.deleteBackward()
                 textDocumentProxy.insertText(currentHangul.textStorage)
+            } else if currentHangul.state == 3{
+                textDocumentProxy.deleteBackward()
+                textDocumentProxy.deleteBackward()
+                textDocumentProxy.insertText(currentHangul.textStorage)
+
+                
             } else {
                 textDocumentProxy.insertText(currentHangul.textStorage)
             }
         } else if prevState == 3 {
             if currentHangul.state == 2 {
+                textDocumentProxy.deleteBackward()
+                textDocumentProxy.insertText(currentHangul.textStorage)
+            } else if currentHangul.state == 3 {
                 textDocumentProxy.deleteBackward()
                 textDocumentProxy.insertText(currentHangul.textStorage)
             } else {
@@ -975,6 +1015,45 @@ class HangulMaker {
     private let juns: [Int] = [0x314f, 0x3150, 0x3151, 0x3152, 0x3153, 0x3154, 0x3155, 0x3156, 0x3157, 0x3158, 0x3159, 0x315a, 0x315b, 0x315c, 0x315d, 0x315e, 0x315f, 0x3160, 0x3161, 0x3162, 0x3163]
     private let jons: [Int] = [0x0000, 0x3131, 0x3132, 0x3133, 0x3134, 0x3135, 0x3136, 0x3137, 0x3139, 0x313a, 0x313b, 0x313c, 0x313d, 0x313e, 0x313f, 0x3140, 0x3141, 0x3142, 0x3144, 0x3145, 0x3146, 0x3147, 0x3148, 0x314a, 0x314b, 0x314c, 0x314d, 0x314e]
     
+    weak var delegate: KeyboardViewControllerDelegate?
+
+    func getPrevText() -> Character {
+            guard let delegate = delegate else { return "\u{0000}"}
+            let isDecomposable = delegate.requestDecomposableState()
+            let previousCharacter = delegate.requestPreviousCharacter()
+
+            print("Is decomposable: \(isDecomposable)")
+            if let character = previousCharacter {
+                print("Previous character: \(character)")
+                return character
+            }else{ return "\u{0000}"}
+            
+        }
+    func updateDecomposableState(newState: Bool) {
+            delegate?.updateDecomposableState(isDecomposable: newState)
+        }
+    func requestDecomposable() -> Bool {
+        guard let delegate = delegate else { return true}
+        let isDecomposable = delegate.requestDecomposableState()
+        return isDecomposable
+    }
+    func decomposeKoreanCharacter(_ character: Character) -> (cho: String, jung: String, jong: String) {
+        let hangulSyllables = "가".unicodeScalars.first!.value..."\u{D7A3}".unicodeScalars.first!.value
+        let initialConsonants = ["ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"]
+        let medialVowels = ["ㅏ", "ㅐ", "ㅑ", "ㅒ", "ㅓ", "ㅔ", "ㅕ", "ㅖ", "ㅗ", "ㅘ", "ㅙ", "ㅚ", "ㅛ", "ㅜ", "ㅝ", "ㅞ", "ㅟ", "ㅠ", "ㅡ", "ㅢ", "ㅣ"]
+        let finalConsonants = ["", "ㄱ", "ㄲ", "ㄳ", "ㄴ", "ㄵ", "ㄶ", "ㄷ", "ㄹ", "ㄺ", "ㄻ", "ㄼ", "ㄽ", "ㄾ", "ㄿ", "ㅀ", "ㅁ", "ㅂ", "ㅄ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"]
+
+        guard let scalarValue = character.unicodeScalars.first?.value, hangulSyllables.contains(scalarValue) else {
+            return ("", "", "")
+        }
+
+        let base = scalarValue - 0xAC00
+        let choIndex = Int(base / 588)
+        let jungIndex = Int((base % 588) / 28)
+        let jongIndex = Int(base % 28)
+
+        return (initialConsonants[choIndex], medialVowels[jungIndex], finalConsonants[jongIndex])
+    }
     /**
      * 0:""
      * 1: 모음 입력상태
@@ -1024,6 +1103,7 @@ class HangulMaker {
                 return 0
             }
             switch state {
+                
             case 0:
                 if juns.contains(cInt) { //ㅏ
                     setStateZero()
@@ -1064,11 +1144,18 @@ class HangulMaker {
                     }
                 }
             case 3: //받
+
                 if jons.contains(cInt) {
                     if doubleJonEnable(c) { // 밟
                         textStorage = String(makeHan())
                         return 1
                     } else { //발ㄹ
+                        let isDecpmposable = delegate?.requestDecomposableState()
+                        if isDecpmposable == true && state == 1 {
+                            state = 3
+                            textStorage = String(makeHan())
+                            break
+                        }
                         setStateZero()
                         textStorage = String(c)
                         clear()
@@ -1160,6 +1247,31 @@ class HangulMaker {
         let result = base + choIndex * 21 * 28 + junIndex * 28
         return Character(UnicodeScalar(result)!)
     }
+    func isDoubleJong(_ jong: Character) -> Bool {
+        // 이중 종성 리스트
+        let doubleJongs: [Character] = ["ㄳ", "ㄵ", "ㄶ", "ㄺ", "ㄻ", "ㄼ", "ㄽ", "ㄾ", "ㄿ", "ㅀ", "ㅄ"]
+        return doubleJongs.contains(jong)
+    }
+    func splitDoubleJong(_ jong: Character) -> (first: Character, second: Character)? {
+        switch jong {
+        case "ㄳ": return ("ㄱ", "ㅅ")
+        case "ㄵ": return ("ㄴ", "ㅈ")
+        case "ㄶ": return ("ㄴ", "ㅎ")
+        case "ㄺ": return ("ㄹ", "ㄱ")
+        case "ㄻ": return ("ㄹ", "ㅁ")
+        case "ㄼ": return ("ㄹ", "ㅂ")
+        case "ㄽ": return ("ㄹ", "ㅅ")
+        case "ㄾ": return ("ㄹ", "ㅌ")
+        case "ㄿ": return ("ㄹ", "ㅍ")
+        case "ㅀ": return ("ㄹ", "ㅎ")
+        case "ㅄ": return ("ㅂ", "ㅅ")
+        default: return nil
+        }
+    }
+    func isHangulSyllable(_ character: Character) -> Bool {
+        let unicode = character.unicodeScalars.first!.value
+        return (unicode >= 0xAC00 && unicode <= 0xD7A3)
+    }
 
     open func delete() {
             switch state {
@@ -1168,30 +1280,98 @@ class HangulMaker {
                     textStorage.removeLast()
                 }
             case 1:
-                cho = "\u{0000}"
-                state = 0
-                textStorage = ""
+                let prevText = getPrevText()
+                let isDecomposable = requestDecomposable()
+                var temp : Character = "\u{0000}"
+                print(prevText)
+                let (prevCho, prevJung, prevJong): (String, String, String) = decomposeKoreanCharacter(prevText)
+                if isDecomposable == true && prevText != "\n" && prevText != " " && isHangulSyllable(prevText){
+                    if prevJong.isEmpty {
+                        jon = cho
+                        cho = Character(prevCho)
+                        jun = Character(prevJung)
+                        state = 3
+                        textStorage = String(makeHan())
+                    } else {
+//                    {
+//                        var doubleJongState = isDoubleJong(Character(prevJong))
+//                        if doubleJongState == true {
+//                            let jong = splitDoubleJong(Character(prevJong))
+//                            state = 1
+//                            cho = Character(prevCho)
+//                            jun = Character(prevJung)
+//                            jon = jong!.first
+//                            textStorage = String(makeHan())
+//                            commit(jong!.second)
+//                        }
+//                        else{
+                            state = 3
+                            temp = cho
+                            cho = Character(prevCho)
+                            jun = Character(prevJung)
+                            jon = Character(prevJong)
+                            //                        commit(temp)
+                            textStorage = String(makeHan())
+                        }
+//                    }
+                }else{
+                    cho = "\u{0000}"
+                    state = 0
+                    textStorage = ""}
             case 2:
+                let prevText = getPrevText()
+                let isDecomposable = requestDecomposable()
+                var temp : Character = "\u{0000}"
+                print(prevText)
+                let (prevCho, prevJung, prevJong): (String, String, String) = decomposeKoreanCharacter(prevText)
+
+                print(prevCho, prevJung, prevJong)
+                
+
                 if junFlag != "\u{0000}" {
                     jun = junFlag
                     junFlag = "\u{0000}"
                     state = 2
                     textStorage = String(makeHan())
-                } else {
-                    jun = "\u{0000}"
-                    junFlag = "\u{0000}"
-                    state = 1
-                    textStorage = String(cho)
-                }
+                } else if isDecomposable == true && prevText != "\n" && prevText != " " && isHangulSyllable(prevText) {
+                    if prevJong.isEmpty {
+                        jon = cho
+                        cho = Character(prevCho)
+                        jun = Character(prevJung)
+                        state = 3
+                        textStorage = String(makeHan())
+                    } else {
+                        state = 3
+                        temp = cho
+                        cho = Character(prevCho)
+                        jun = Character(prevJung)
+                        jon = Character(prevJong)
+                        commit(temp)
+                    }} else {
+                        jun = "\u{0000}"
+                        junFlag = "\u{0000}"
+                        state = 1
+                        textStorage = String(cho)
+                    }
             case 3:
-                if doubleJonFlag == "\u{0000}" {
+                let (prevCho, prevJung, prevJong): (String, String, String) = decomposeKoreanCharacter(Character(textStorage))
+
+                var doubleJongState = isDoubleJong(Character(prevJong))
+                
+                if doubleJongState == false {
                     jon = "\u{0000}"
                     state = 2
                 } else {
-                    jon = jonFlag
-                    jonFlag = "\u{0000}"
-                    doubleJonFlag = "\u{0000}"
+                    let jong = splitDoubleJong(Character(prevJong))
                     state = 3
+                    cho = Character(prevCho)
+                    jun = Character(prevJung)
+                    jon = jong!.first
+                    textStorage = String(makeHan())
+                    commit(jong!.second)
+
+                    jon = jonFlag
+                    doubleJonFlag = "\u{0000}"
                 }
                 textStorage = String(makeHan())
             default:
