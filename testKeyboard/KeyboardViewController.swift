@@ -967,7 +967,12 @@ class KeyboardViewController: UIInputViewController {
         } else if prevState == 1 {
             if currentHangul.state == 0 {
                 textDocumentProxy.deleteBackward()
-            } else if currentHangul.state == 3 {
+            } else if currentHangul.state == 2{
+                textDocumentProxy.deleteBackward()
+                textDocumentProxy.deleteBackward()
+                textDocumentProxy.insertText(currentHangul.textStorage)
+            }
+            else if currentHangul.state == 3 {
                 textDocumentProxy.deleteBackward()
                 textDocumentProxy.deleteBackward()
                 textDocumentProxy.insertText(currentHangul.textStorage)
@@ -1397,7 +1402,13 @@ class HangulMaker {
                         state = 3
                         textStorage = String(makeHan())
                     } else {
-//                    
+                        if jons.contains(Int(cho.unicodeScalars.first!.value)) != true {
+                            cho = Character(prevCho)
+                            jun = Character(prevJung)
+                            state = 2
+                            textStorage = String(makeHan())
+                            break
+                        }
                             state = 3
                             temp = cho
                             cho = Character(prevCho)
@@ -1428,13 +1439,21 @@ class HangulMaker {
                     textStorage = String(makeHan())
                 } else if isDecomposable == true && prevText != "\n" && prevText != " " && isHangulSyllable(prevText) {
                     if prevJong.isEmpty {
-                        temp = jon
-                        jon = cho
-                        cho = Character(prevCho)
-                        jun = Character(prevJung)
-                        state = 3
-                        textStorage = String(makeHan())
-                        break
+                        let choUnicode = Int(cho.unicodeScalars.first!.value)
+                        if jons.contains(choUnicode){
+                            temp = jon
+                            jon = cho
+                            cho = Character(prevCho)
+                            jun = Character(prevJung)
+                            state = 3
+                            textStorage = String(makeHan())
+                            break
+                        } else {
+                            state = 1
+                            jun = "\u{0000}"
+                            textStorage = String(cho)
+                            break
+                        }
                     } else {
                         jon = Character(prevJong)
                         if doubleJonEnable(cho) == true {
