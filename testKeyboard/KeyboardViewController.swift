@@ -1244,6 +1244,19 @@ class HangulMaker {
                     
                 } else {
                     var temp: Character = "\u{0000}"
+                    if delegate?.requestDecomposableState() == true && isDoubleJong(Character(prevJong0)){
+                        let jong = splitDoubleJong(Character(prevJong0))
+                        state = 2
+                        cho = Character(prevCho0)
+                        jun = Character(prevJung0)
+                        jon = jong!.first
+                        textStorage = String(makeHan())
+                        cho = jong!.second
+                        jun = c
+                        jon = "\u{0000}"
+                        textStorage.append(String(makeHan()))
+                        return 2
+                    }
                     if doubleJonFlag == "\u{0000}" {
                         temp = jon
                         jon = "\u{0000}"
@@ -1378,7 +1391,7 @@ class HangulMaker {
                 let (prevCho, prevJung, prevJong): (String, String, String?) = decomposeKoreanCharacter(prevText)
                 if isDecomposable == true && prevText != "\n" && prevText != " " && isHangulSyllable(prevText){
                     if ((prevJong?.isEmpty) != nil) && jons.contains(Int(cho.unicodeScalars.first!.value)){
-                        jon = cho
+                        jon = Character(prevJong!)
                         cho = Character(prevCho)
                         jun = Character(prevJung)
                         state = 3
@@ -1423,22 +1436,31 @@ class HangulMaker {
                         textStorage = String(makeHan())
                         break
                     } else {
-                        state = 3
-                        temp = cho
-                        cho = Character(prevCho)
-                        jun = Character(prevJung)
                         jon = Character(prevJong)
-                        commit(temp)
-                    }} else {
+                        if doubleJonEnable(cho) == true {
+                            state = 3
+                            cho = Character(prevCho)
+                            jun = Character(prevJung)
+                            textStorage = String(makeHan())
+                            break
+                        }
                         jun = "\u{0000}"
                         junFlag = "\u{0000}"
+                        jon = "\u{0000}"
+                        state = 1
+                        textStorage = String(cho)
+                    }
+                } else {
+                        jun = "\u{0000}"
+                        junFlag = "\u{0000}"
+                        jon = "\u{0000}"
                         state = 1
                         textStorage = String(cho)
                     }
             case 3:
                 let (prevCho, prevJung, prevJong): (String, String, String) = decomposeKoreanCharacter(Character(textStorage))
-
-                var doubleJongState = isDoubleJong(Character(prevJong))
+                let validPrevJong = prevJong.isEmpty ? "\u{0000}" : prevJong
+                var doubleJongState = isDoubleJong(Character(validPrevJong))
                 
                 if doubleJongState == false {
                     jon = "\u{0000}"
