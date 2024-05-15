@@ -798,7 +798,7 @@ class KeyboardViewController: UIInputViewController {
         stackView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(stackView)
 
-        // 키보드의 전체 높이를 적절하게 설정 (예: 250 포인트)
+        // 키보드의 전체 높이를 적절하게 설정 (예: 235 포인트)
         let keyboardHeight: CGFloat = 235
         view.heightAnchor.constraint(equalToConstant: keyboardHeight).isActive = true
 
@@ -830,16 +830,16 @@ class KeyboardViewController: UIInputViewController {
                                               
                         setupButtonAppearance(button: numberPadButton)
                         rowStack.addArrangedSubview(numberPadButton)
-                        numberPadButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 10/100).isActive = true
-                        numberPadButton.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 1 / 6).isActive = true
+                        numberPadButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 10/105.5).isActive = true
+                        numberPadButton.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 18 / 105.5).isActive = true
                         numberPadButton.backgroundColor = .systemGray2
                         continue
-                    }else if col == 2 {
+                    } else if col == 2 {
                         let spaceButton = KeyCap(defaultCharacter: " ", keyType: .space)
                         spaceButton.setTitle("space", for: .normal)
                         rowStack.addArrangedSubview(spaceButton)
-                        spaceButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 45/100).isActive = true
-                        spaceButton.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 1 / 6).isActive = true
+                        spaceButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 45/105.5).isActive = true
+                        spaceButton.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 18 / 105.5).isActive = true
                         spaceButton.backgroundColor = .white
                         spaceButton.layer.cornerRadius = 5
                         spaceButton.setTitleColor(.black, for: .normal)
@@ -863,16 +863,16 @@ class KeyboardViewController: UIInputViewController {
                         returnButton.layer.shadowOpacity = 0.5
                         returnButton.layer.shadowRadius = 0
                         rowStack.addArrangedSubview(returnButton)
-                        returnButton.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 1 / 6).isActive = true
-                        returnButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 20/100).isActive = true
+                        returnButton.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 18 / 105.5).isActive = true
+                        returnButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 22/105.5).isActive = true
                         continue
                     }
                     
                     let button = KeyCap(defaultCharacter: "")
                     setupButtonAppearance(button: button)
                     rowStack.addArrangedSubview(button)
-                    button.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 1 / 6).isActive = true
-                    button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 10/100).isActive = true
+                    button.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 18 / 105.5).isActive = true
+                    button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 11/105.5).isActive = true
                 }
             } else {
                 for col in 0..<numberOfButtonsPerRow {
@@ -880,11 +880,10 @@ class KeyboardViewController: UIInputViewController {
 
                     setupButtonAppearance(button: button)
                     rowStack.addArrangedSubview(button)
-                    button.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 1 / 5.2).isActive = true
-                    button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 26/100).isActive = true
-                    if row != 4 && col == 3{ //마지막 열
-                        button.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 1 / 5.2).isActive = true
-                        button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 17/100).isActive = true
+                    button.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 20.5 / 105.5).isActive = true
+                    button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 27/105.5).isActive = true
+                    if row != 4 && col == 3 { // 마지막 열
+                        button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 19/105.5).isActive = true
                     }
                     
                     characterButtons.append(button)
@@ -896,6 +895,7 @@ class KeyboardViewController: UIInputViewController {
             }
         }
     }
+
     @objc func switchToNumberPad() {
         // 숫자 키패드로 전환하는 액션 구현
         print("Switching to number pad")
