@@ -792,7 +792,7 @@ class KeyboardViewController: UIInputViewController {
     func setupKeyboardLayout() {
         let stackView = UIStackView()
         stackView.axis = .vertical
-        stackView.distribution = .equalSpacing
+        stackView.distribution = .fillEqually
         stackView.alignment = .fill
         stackView.spacing = 2 // 간격을 줄임
         stackView.translatesAutoresizingMaskIntoConstraints = false
@@ -814,7 +814,7 @@ class KeyboardViewController: UIInputViewController {
         for row in 0..<numberOfRows {
             let rowStack = UIStackView()
             rowStack.axis = .horizontal
-            rowStack.distribution = .equalSpacing
+            rowStack.distribution = .fillEqually
             rowStack.alignment = .fill
             rowStack.spacing = 3 // 간격을 줄임
             rowStack.layoutMargins = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 4) // 원하는 여백으로 변경
@@ -1167,6 +1167,10 @@ class HangulMaker {
         if delegate?.requestDecomposableState() == true {
             if prevCho0 != "" && prevJung0 != "" && prevJong0 != "" {
                 state = 3
+            } else if prevCho0 != "" && prevJung0 != "" {
+                cho = Character(prevCho0)
+                jun = Character(prevJung0)
+                state = 2
             }
         }
             switch state {
@@ -1252,7 +1256,7 @@ class HangulMaker {
                             temp = Character(prevJong0)
                             cho = temp
                             jun = c
-jon = "\u{0000}"
+                            jon = "\u{0000}"
                             textStorage.append(String(makeHan()))
                             
                             return 2
@@ -1371,9 +1375,9 @@ jon = "\u{0000}"
                 let isDecomposable = requestDecomposable()
                 var temp : Character = "\u{0000}"
                 print(prevText)
-                let (prevCho, prevJung, prevJong): (String, String, String) = decomposeKoreanCharacter(prevText)
+                let (prevCho, prevJung, prevJong): (String, String, String?) = decomposeKoreanCharacter(prevText)
                 if isDecomposable == true && prevText != "\n" && prevText != " " && isHangulSyllable(prevText){
-                    if prevJong.isEmpty {
+                    if ((prevJong?.isEmpty) != nil) && jons.contains(Int(cho.unicodeScalars.first!.value)){
                         jon = cho
                         cho = Character(prevCho)
                         jun = Character(prevJung)
@@ -1385,15 +1389,15 @@ jon = "\u{0000}"
                             temp = cho
                             cho = Character(prevCho)
                             jun = Character(prevJung)
-                            jon = Character(prevJong)
-                            //                        commit(temp)
+                        jon = prevJong?.isEmpty == false ? Character(prevJong!) : "\u{0000}"
                             textStorage = String(makeHan())
                         }
 //                    }
                 }else{
                     cho = "\u{0000}"
                     state = 0
-                    textStorage = ""}
+                    textStorage = ""
+                }
             case 2:
                 let prevText = getPrevText()
                 let isDecomposable = requestDecomposable()
