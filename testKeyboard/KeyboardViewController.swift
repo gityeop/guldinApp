@@ -1224,6 +1224,7 @@ class HangulMaker {
                 if jons.contains(cInt) {
                     if doubleJonEnable(c) { // 밟
                         textStorage = String(makeHan())
+                        doubleJonFlag = "\u{0000}"
                         return 1
                     } else { //발ㄹ
                         let isDecpmposable = delegate?.requestDecomposableState()
