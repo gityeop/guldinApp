@@ -7,31 +7,31 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "5413C3A6-BEE2-4696-B882-397420D1B30D"
+            uuid = "8081BE27-7DC7-48C7-B378-CAA7606AB969"
             shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "testKeyboard/KeyboardViewController.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "964"
-            endingLineNumber = "964"
-            landmarkName = "deleteBackward()"
+            startingLineNumber = "1408"
+            endingLineNumber = "1408"
+            landmarkName = "delete()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "1405094C-8222-4B5A-B0F1-B7D628A4E418"
+            uuid = "5E56802E-A98A-4997-8C68-F1B71721B507"
             shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "testKeyboard/KeyboardViewController.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1252"
-            endingLineNumber = "1252"
+            startingLineNumber = "1169"
+            endingLineNumber = "1169"
             landmarkName = "commit(_:)"
             landmarkType = "7">
          </BreakpointContent>
@@ -39,32 +39,32 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "31EBD1E5-13CE-4D01-AB1F-ACB0FF2AD4FA"
+            uuid = "39D755CE-2473-4E6C-AB15-DF71D2999E1C"
             shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "testKeyboard/KeyboardViewController.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1224"
-            endingLineNumber = "1224"
-            landmarkName = "commit(_:)"
+            startingLineNumber = "1460"
+            endingLineNumber = "1460"
+            landmarkName = "delete()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "C09D23D4-7E1F-4C1F-891F-57D411992424"
+            uuid = "BA181CE6-CDA3-4241-BD05-AE4ECACBE1A7"
             shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "testKeyboard/KeyboardViewController.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1207"
-            endingLineNumber = "1207"
-            landmarkName = "commit(_:)"
+            startingLineNumber = "945"
+            endingLineNumber = "945"
+            landmarkName = "processInput(_:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
