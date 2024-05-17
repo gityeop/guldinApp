@@ -1516,6 +1516,7 @@ class HangulMaker {
                 
                 if doubleJongState == false {
                     jon = "\u{0000}"
+                    jonFlag = "\u{0000}"
                     state = 2
                 } else {
                     let jong = splitDoubleJong(Character(prevJong))
