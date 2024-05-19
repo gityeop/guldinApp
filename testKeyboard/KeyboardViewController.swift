@@ -753,12 +753,20 @@ private func saveCurrentCursorPosition() {
         // 예: 입력 버퍼 초기화, 상태 업데이트 등
     }
     override func textDidChange(_ textInput: UITextInput?) {
-        super.textDidChange(textInput)
-        // 입력이 화면에 반영된 후에 호출됩니다.
-        // 여기서 checkAndCallAfterDelete 함수를 호출하여 문서 컨텍스트의 변경을 감지하고 처리합니다.
-        checkAndCallAfterDelete()
-    }
+            super.textDidChange(textInput)
+            guard let proxy = textDocumentProxy as? UITextDocumentProxy else { return }
 
+            // 텍스트 입력 창에서의 현재 텍스트 상태 확인
+            let documentContext = proxy.documentContextBeforeInput ?? ""
+            let afterContext = proxy.documentContextAfterInput ?? ""
+
+            // 입력창이 비어 있는지 확인
+            if documentContext.isEmpty && afterContext.isEmpty {
+                // HangulMaker의 afterDelete 메소드 호출
+                currentHangul.afterDelete()
+            }
+        checkAndCallAfterDelete()
+        }
 
     private func checkAndCallAfterDelete() {
         guard let proxy = textDocumentProxy as? UITextDocumentProxy else { return }
