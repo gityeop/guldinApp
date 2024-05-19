@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		DB01957C2BE5573400BA1548 /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB01957B2BE5573400BA1548 /* KeyboardViewController.swift */; };
 		DB0195802BE5573400BA1548 /* testKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DB0195792BE5573400BA1548 /* testKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		DB2BD0912BF7D245003F7A5B /* spell_check.py in Resources */ = {isa = PBXBuildFile; fileRef = DB2BD0902BF7D245003F7A5B /* spell_check.py */; };
 		DB6B37362BE51CB700CB14A0 /* guldinApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB6B37352BE51CB700CB14A0 /* guldinApp.swift */; };
 		DB6B37382BE51CB700CB14A0 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB6B37372BE51CB700CB14A0 /* ContentView.swift */; };
 		DB6B373A2BE51CB800CB14A0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DB6B37392BE51CB800CB14A0 /* Assets.xcassets */; };
@@ -60,6 +61,7 @@
 		DB0195792BE5573400BA1548 /* testKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = testKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB01957B2BE5573400BA1548 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
 		DB01957D2BE5573400BA1548 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		DB2BD0902BF7D245003F7A5B /* spell_check.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = spell_check.py; sourceTree = "<group>"; };
 		DB6B37322BE51CB700CB14A0 /* guldin.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = guldin.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB6B37352BE51CB700CB14A0 /* guldinApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = guldinApp.swift; sourceTree = "<group>"; };
 		DB6B37372BE51CB700CB14A0 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -110,6 +112,7 @@
 			children = (
 				DB87C2162BE9521E005D0525 /* testKeyboardDebug.entitlements */,
 				DB01957B2BE5573400BA1548 /* KeyboardViewController.swift */,
+				DB2BD0902BF7D245003F7A5B /* spell_check.py */,
 				DB01957D2BE5573400BA1548 /* Info.plist */,
 			);
 			path = testKeyboard;
@@ -301,6 +304,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DB2BD0912BF7D245003F7A5B /* spell_check.py in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

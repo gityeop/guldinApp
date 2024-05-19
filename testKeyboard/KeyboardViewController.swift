@@ -655,6 +655,7 @@ class KeyboardViewController: UIInputViewController {
     var isDecomposable: Bool = false  // 입력 시 자소 분리 가능 상태
     weak var delegate: KeyboardViewControllerDelegate?
     var lastCursorPosition: Int?
+    private var lexicon: UILexicon?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -662,8 +663,75 @@ class KeyboardViewController: UIInputViewController {
         setupKeyboardLayout()
         hapticGenerator.prepare()
         currentHangul.delegate = self
+        loadLexicon()
         }
-    private func saveCurrentCursorPosition() {
+    private func loadLexicon() {
+        requestSupplementaryLexicon { (lexicon) in
+            self.lexicon = lexicon
+            if let lexicon = self.lexicon {
+                print("Lexicon loaded with \(lexicon.entries.count) entries")
+                for entry in lexicon.entries {
+                    print("Lexicon entry: \(entry.userInput) -> \(entry.documentText)")
+                }
+            } else {
+                print("Failed to load lexicon")
+            }
+        }
+    }
+    
+    // 오타 교정 사전 정의
+    let customCorrections: [String: String] = [
+        "과아수쇗": "과일 주스",
+        // 더 많은 교정 쌍을 여기에 추가
+    ]
+
+    private func correctTextIfNeeded() {
+        guard let proxy = textDocumentProxy as? UITextDocumentProxy else {
+            print("Text document proxy not available")
+            return
+        }
+        
+        let documentContext = proxy.documentContextBeforeInput ?? ""
+        var words = documentContext.split { $0.isWhitespace || $0.isNewline }.map { String($0) }
+        
+        // 만약 documentContextBeforeInput이 비어있고 documentContextAfterInput에 내용이 있다면
+        if words.isEmpty, let afterContext = proxy.documentContextAfterInput {
+            words = afterContext.split { $0.isWhitespace || $0.isNewline }.map { String($0) }
+        }
+        
+        guard let lastWord = words.last else {
+            print("No last word found")
+            return
+        }
+        
+        print("Document context: \(lastWord)")
+        
+        // 사용자 정의 오타 교정
+        if let correctedText = customCorrections[lastWord] {
+            print("사용자 정의 교정어: \(lastWord) -> \(correctedText)")  // 콘솔 로그 추가
+            for _ in 0..<lastWord.count {
+                proxy.deleteBackward()
+            }
+            proxy.insertText(correctedText)
+            return
+        }
+        
+        // UILexicon을 이용한 기본 교정
+        if let lexicon = lexicon {
+            for entry in lexicon.entries {
+                if entry.userInput == lastWord {
+                    let correctedText = entry.documentText
+                    print("자동 교정어: \(entry.userInput) -> \(correctedText)")  // 콘솔 로그 추가
+                    for _ in 0..<lastWord.count {
+                        proxy.deleteBackward()
+                    }
+                    proxy.insertText(correctedText)
+                    break
+                }
+            }
+        }
+    }
+private func saveCurrentCursorPosition() {
              if let proxy = textDocumentProxy as? UITextDocumentProxy {
                  let currentPosition = proxy.documentContextBeforeInput?.count ?? 0
                  lastCursorPosition = currentPosition
@@ -743,6 +811,7 @@ class KeyboardViewController: UIInputViewController {
                          slideUpRightCharacter: "ㅘ", slideDownLeftCharacter: "ㅝ"),
                    KeyCap(defaultCharacter: "!",
                           slideUpCharacter: "?",
+                          slideDownCharacter: ";",
                           slideLeftCharacter: "~"),
                    KeyCap(defaultCharacter: "ㅅ", slideUpCharacter: "ㅆ", slideDownCharacter: "2",
                           slideLeftCharacter: "1", slideRightCharacter: "3"),
@@ -946,11 +1015,6 @@ class KeyboardViewController: UIInputViewController {
               currentHangul.afterDelete()
               delegate?.updateDecomposableState(isDecomposable: false)
           }
-//        if lastCursorPosition == cursorTemp {
-//            delegate?.updateDecomposableState(isDecomposable: false)
-//            print("Set isdecomposable to false")
-//            cursorTemp = -1
-//        }
           for character in input {
               let result = currentHangul.commit(character)
               if result == 1 {
@@ -962,7 +1026,10 @@ class KeyboardViewController: UIInputViewController {
           if currentHangul.textStorage != "" {
               let result = currentHangul.textStorage
               textDocumentProxy.insertText(result)
+              print("Checking for text correction")
+              correctTextIfNeeded()
           }
+
           saveCurrentCursorPosition()
       }
 
@@ -1423,7 +1490,7 @@ class HangulMaker {
                 print(prevText)
                 
                 if isDecomposable == true && prevText != "\n" && prevText != " " && isHangulSyllable(prevText){
-                    if ((prevJong?.isEmpty) != nil) && jons.contains(Int(cho.unicodeScalars.first!.value)){
+                    if ((prevJong?.isEmpty) != nil) && jons.contains(Int(cho.unicodeScalars.first!.value)) || chos.contains(Int(cho.unicodeScalars.first!.value)){
                         if let prevJong = prevJong, !prevJong.isEmpty {
                             jon = Character(prevJong)
                         } else {
@@ -1435,6 +1502,7 @@ class HangulMaker {
                         jun = Character(prevJung)
                         state = 3
                         textStorage = String(makeHan())
+                        doubleJonFlag = "\u{0000}"
                     } else {
                         if jons.contains(Int(cho.unicodeScalars.first!.value)) != true {
                             cho = Character(prevCho)
