@@ -298,7 +298,7 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
     private func startRepeatTimer() {
         
         stopRepeatTimer() // Ensure any existing timer is stopped
-        repeatTimer = Timer.scheduledTimer(timeInterval: 0.3, target: self, selector: #selector(deleteWordRepeatedly), userInfo: nil, repeats: true)
+        repeatTimer = Timer.scheduledTimer(timeInterval: 0.25, target: self, selector: #selector(deleteWordRepeatedly), userInfo: nil, repeats: true)
     }
 
     private func stopRepeatTimer() {
@@ -656,15 +656,22 @@ class KeyboardViewController: UIInputViewController {
     weak var delegate: KeyboardViewControllerDelegate?
     var lastCursorPosition: Int?
     private var lexicon: UILexicon?
+    var isNumberPad: Bool = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        isNumberPad = false
         configureKeyCaps()
         setupKeyboardLayout()
         hapticGenerator.prepare()
         currentHangul.delegate = self
         loadLexicon()
         }
+    @objc func switchToNumberPad() {
+        isNumberPad.toggle()
+        setupKeyboardLayout()
+    }
+
     private func loadLexicon() {
         requestSupplementaryLexicon { (lexicon) in
             self.lexicon = lexicon
@@ -871,6 +878,9 @@ private func saveCurrentCursorPosition() {
         assignButtonTitles()
     }
     func setupKeyboardLayout() {
+        // 기존 모든 뷰를 제거합니다
+        view.subviews.forEach { $0.removeFromSuperview() }
+
         let stackView = UIStackView()
         stackView.axis = .vertical
         stackView.distribution = .fillEqually
@@ -879,8 +889,7 @@ private func saveCurrentCursorPosition() {
         stackView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(stackView)
 
-        // 키보드의 전체 높이를 적절하게 설정 (예: 235 포인트)
-        let keyboardHeight: CGFloat = 235
+        let keyboardHeight: CGFloat = 240
         view.heightAnchor.constraint(equalToConstant: keyboardHeight).isActive = true
 
         NSLayoutConstraint.activate([
@@ -889,7 +898,64 @@ private func saveCurrentCursorPosition() {
             stackView.topAnchor.constraint(equalTo: view.topAnchor, constant: 5),
             stackView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -5)
         ])
-        
+
+        if isNumberPad {
+            setupNumberPadLayout(stackView: stackView)
+        } else {
+            setupAlphabetLayout(stackView: stackView)
+        }
+    }
+
+    func setupNumberPadLayout(stackView: UIStackView) {
+        let numberKeys: [[(String, String?, String?, String?, String?)]] = [
+            [("1", "!", "¹", "ˉ", "∑"), ("2", "@", "²", "√", "π"), ("3", "#", "³", "∛", "∩"), ("⌫", nil, nil, nil, nil)], // 1행 4열 백스페이스 키
+            [("4", "$", "¤", "€", "£"), ("5", "%", "‰", "₩", "¥"), ("6", "^", "˄", "˅", "ˆ"), ("$", "¢", "€", "£", "¥")], // 2행 4열 특수문자 키
+            [("7", "&", "§", "¶", "†"), ("8", "*", "⁂", "★", "☆"), ("9", "(", "〔", "【", "『"), ("&", "∧", "∪", "∩", "∑")], // 3행 4열 특수문자 키
+            [("#", "№", "ℓ", "㎏", "㎜"), ("0", ")", "〕", "】", "』"), ("*", "×", "÷", "•", "⁕"), ("@", "©", "®", "™", "✓")]  // 4행 4열 특수문자 키
+        ]
+
+        for rowKeys in numberKeys {
+            let rowStack = UIStackView()
+            rowStack.axis = .horizontal
+            rowStack.distribution = .fillEqually
+            rowStack.alignment = .fill
+            rowStack.spacing = 3 // 간격을 줄임
+            rowStack.layoutMargins = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 4) // 원하는 여백으로 변경
+            rowStack.isLayoutMarginsRelativeArrangement = true
+            stackView.addArrangedSubview(rowStack)
+
+            for key in rowKeys {
+                let keyType: KeyCap.KeyType = key.0 == "⌫" ? .backspace : .character
+                let button = KeyCap(
+                    defaultCharacter: key.0,
+                    slideUpCharacter: key.1,
+                    slideDownCharacter: key.2,
+                    slideLeftCharacter: key.3,
+                    slideRightCharacter: key.4,
+                    keyType: keyType
+                )
+                setupButtonAppearance(button: button)
+                rowStack.addArrangedSubview(button)
+                button.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 1 / 5).isActive = true
+                button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 1 / 4.2).isActive = true // 명확한 너비 제약 조건 추가
+            }
+        }
+
+        let lastRowStack = UIStackView()
+        lastRowStack.axis = .horizontal
+        lastRowStack.distribution = .fillEqually
+        lastRowStack.alignment = .fill
+        lastRowStack.spacing = 3 // 간격을 줄임
+        lastRowStack.layoutMargins = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 4) // 원하는 여백으로 변경
+        lastRowStack.isLayoutMarginsRelativeArrangement = true
+        stackView.addArrangedSubview(lastRowStack)
+
+        addLastRowButtons(to: lastRowStack, stackView: stackView)
+    }
+
+
+
+    func setupAlphabetLayout(stackView: UIStackView) {
         let numberOfRows = 5
         let numberOfButtonsPerRow = 4
         for row in 0..<numberOfRows {
@@ -903,86 +969,84 @@ private func saveCurrentCursorPosition() {
             stackView.addArrangedSubview(rowStack)
 
             if row == 4 {
-                for col in 0..<5 {
-                    if col == 0 {
-                        // 5행 1열에 숫자 키패드로 전환하는 버튼을 추가
-                        let numberPadButton = KeyCap(defaultCharacter: "#", keyType: .custom(switchToNumberPad))
-                        numberPadButton.setTitle("123", for: .normal)
-                                              
-                        setupButtonAppearance(button: numberPadButton)
-                        rowStack.addArrangedSubview(numberPadButton)
-                        numberPadButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 10/105.5).isActive = true
-                        numberPadButton.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 18 / 105.5).isActive = true
-                        numberPadButton.backgroundColor = .systemGray2
-                        continue
-                    } else if col == 2 {
-                        let spaceButton = KeyCap(defaultCharacter: " ", keyType: .space)
-                        spaceButton.setTitle("space", for: .normal)
-                        rowStack.addArrangedSubview(spaceButton)
-                        spaceButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 45/105.5).isActive = true
-                        spaceButton.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 18 / 105.5).isActive = true
-                        spaceButton.backgroundColor = .white
-                        spaceButton.layer.cornerRadius = 5
-                        spaceButton.setTitleColor(.black, for: .normal)
-                        spaceButton.setTitleColor(.black, for: .highlighted)
-                        spaceButton.titleLabel?.font = .systemFont(ofSize: 16)
-                        spaceButton.layer.shadowColor = UIColor.black.cgColor
-                        spaceButton.layer.shadowOffset = CGSize(width: 0, height: 1)
-                        spaceButton.layer.shadowOpacity = 0.5
-                        spaceButton.layer.shadowRadius = 0
-                        continue
-                    } else if col == 4 {
-                        let returnButton = KeyCap(defaultCharacter: "\n", keyType: .custom(handleReturn))
-                        returnButton.setTitle("return", for: .normal)
-                        returnButton.backgroundColor = .systemGray2
-                        returnButton.layer.cornerRadius = 5
-                        returnButton.titleLabel?.font = .systemFont(ofSize: 15)
-                        returnButton.setTitleColor(.black, for: .normal)
-                        returnButton.setTitleColor(.black, for: .highlighted)
-                        returnButton.layer.shadowColor = UIColor.black.cgColor
-                        returnButton.layer.shadowOffset = CGSize(width: 0, height: 1)
-                        returnButton.layer.shadowOpacity = 0.5
-                        returnButton.layer.shadowRadius = 0
-                        rowStack.addArrangedSubview(returnButton)
-                        returnButton.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 18 / 105.5).isActive = true
-                        returnButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 22/105.5).isActive = true
-                        continue
-                    }
-                    
-                    let button = KeyCap(defaultCharacter: "")
-                    setupButtonAppearance(button: button)
-                    rowStack.addArrangedSubview(button)
-                    button.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 18 / 105.5).isActive = true
-                    button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 11/105.5).isActive = true
-                }
+                 
+                addLastRowButtons(to: rowStack, stackView: stackView)
             } else {
                 for col in 0..<numberOfButtonsPerRow {
                     let button = keyCaps[(row * numberOfButtonsPerRow + col) % keyCaps.count]
 
                     setupButtonAppearance(button: button)
                     rowStack.addArrangedSubview(button)
-                    button.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 20.5 / 105.5).isActive = true
-                    button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 27/105.5).isActive = true
-                    if row != 4 && col == 3 { // 마지막 열
-                        button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 19/105.5).isActive = true
-                    }
-                    
-                    characterButtons.append(button)
-                    if row == 0 && col == 3 {
-                        button.backgroundColor = .systemGray2
-                        button.titleLabel?.font = UIFont.systemFont(ofSize: 28, weight: .light)
-                    }
+                    button.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 1 / 5).isActive = true
+                    button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 1 / 4.2).isActive = true // 명확한 너비 제약 조건 추가
                 }
             }
         }
     }
 
-    @objc func switchToNumberPad() {
-        // 숫자 키패드로 전환하는 액션 구현
-        print("Switching to number pad")
+    func addLastRowButtons(to rowStack: UIStackView, stackView: UIStackView) {
+        // Add rowStack to stackView with equal height constraint
+        stackView.addArrangedSubview(rowStack)
+        rowStack.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 1 / 5.18).isActive = true
+        
+        for col in 0..<5 {
+            if col == 0 {
+                let numberPadButton = KeyCap(defaultCharacter: "#", keyType: .custom(switchToNumberPad))
+                numberPadButton.setTitle(isNumberPad ? "ABC" : "123", for: .normal)
+                                          
+                setupButtonAppearance(button: numberPadButton)
+                rowStack.addArrangedSubview(numberPadButton)
+                numberPadButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 10 / 105.5).isActive = true
+                numberPadButton.backgroundColor = .systemGray2
+                continue
+            } else if col == 2 {
+                let spaceButton = KeyCap(defaultCharacter: " ", keyType: .space)
+                spaceButton.setTitle("space", for: .normal)
+                rowStack.addArrangedSubview(spaceButton)
+                spaceButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 45 / 105.5).isActive = true
+                spaceButton.backgroundColor = .white
+                spaceButton.layer.cornerRadius = 5
+                spaceButton.setTitleColor(.black, for: .normal)
+                spaceButton.setTitleColor(.black, for: .highlighted)
+                spaceButton.titleLabel?.font = .systemFont(ofSize: 16)
+                spaceButton.layer.shadowColor = UIColor.black.cgColor
+                spaceButton.layer.shadowOffset = CGSize(width: 0, height: 1)
+                spaceButton.layer.shadowOpacity = 0.5
+                spaceButton.layer.shadowRadius = 0
+                continue
+            } else if col == 4 {
+                let returnButton = KeyCap(defaultCharacter: "\n", keyType: .custom(handleReturn))
+                returnButton.setTitle("return", for: .normal)
+                returnButton.backgroundColor = .systemGray2
+                returnButton.layer.cornerRadius = 5
+                returnButton.titleLabel?.font = .systemFont(ofSize: 15)
+                returnButton.setTitleColor(.black, for: .normal)
+                returnButton.setTitleColor(.black, for: .highlighted)
+                returnButton.layer.shadowColor = UIColor.black.cgColor
+                returnButton.layer.shadowOffset = CGSize(width: 0, height: 1)
+                returnButton.layer.shadowOpacity = 0.5
+                returnButton.layer.shadowRadius = 0
+                rowStack.addArrangedSubview(returnButton)
+                returnButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 22 / 105.5).isActive = true
+                continue
+            }
+            
+            let button = KeyCap(defaultCharacter: "")
+            setupButtonAppearance(button: button)
+            rowStack.addArrangedSubview(button)
+            button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 1 / 11).isActive = true // 명확한 너비 제약 조건 추가
+        }
     }
+
+
+
     func setupButtonAppearance(button: KeyCap) {
-        button.backgroundColor = .white
+        if button.keyType == .backspace {
+            button.backgroundColor = .systemGray2
+        } else {
+            button.backgroundColor = .white
+        }
+        
         button.layer.cornerRadius = 5
         button.setTitleColor(.black, for: .normal)
         button.setTitleColor(.black, for: .highlighted)
@@ -992,6 +1056,7 @@ private func saveCurrentCursorPosition() {
         button.layer.shadowRadius = 0
         button.titleLabel?.font = UIFont.systemFont(ofSize: 16)
     }
+
     
     @objc func handleReturn() {
         currentHangul.afterDelete()
