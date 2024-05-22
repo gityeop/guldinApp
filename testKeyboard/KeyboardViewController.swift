@@ -188,7 +188,7 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
             let absDeltaX = abs(deltaX)
             let absDeltaY = abs(deltaY)
             let translation = gesture.translation(in: self).x
-            let deltaDirection = translation > 0 ? "right" : "left"
+            _ = translation > 0 ? "right" : "left"
             accumulatedTranslation += translation
             
             if intermediateDirection == nil {
@@ -601,11 +601,9 @@ extension KeyboardViewController: KeyboardViewControllerDelegate {
     }
 
     func requestPreviousCharacter() -> Character? {
-        guard let proxy = textDocumentProxy as? UITextDocumentProxy,
-              let documentContext = proxy.documentContextBeforeInput, !documentContext.isEmpty else {
+        guard let documentContext = textDocumentProxy.documentContextBeforeInput, !documentContext.isEmpty else {
             return nil
         }
-        
         // 커서가 시작 부분에 있을 때 예외 처리
         let endIndex = documentContext.endIndex
         guard endIndex > documentContext.startIndex else {
@@ -623,8 +621,7 @@ extension KeyboardViewController: KeyboardViewControllerDelegate {
         return documentContext[realTextIndex]
     }
     func requestJustPreviousCharacter() -> Character? {
-        guard let proxy = textDocumentProxy as? UITextDocumentProxy,
-              let documentContext = proxy.documentContextBeforeInput, !documentContext.isEmpty else {
+        guard let documentContext = textDocumentProxy.documentContextBeforeInput, !documentContext.isEmpty else {
             return nil
         }
         
@@ -693,11 +690,10 @@ class KeyboardViewController: UIInputViewController {
     ]
 
     private func correctTextIfNeeded() {
-        guard let proxy = textDocumentProxy as? UITextDocumentProxy else {
+        guard let proxy = textDocumentProxy as UITextDocumentProxy? else {
             print("Text document proxy not available")
             return
         }
-        
         let documentContext = proxy.documentContextBeforeInput ?? ""
         var words = documentContext.split { $0.isWhitespace || $0.isNewline }.map { String($0) }
         
@@ -738,21 +734,16 @@ class KeyboardViewController: UIInputViewController {
             }
         }
     }
-private func saveCurrentCursorPosition() {
-             if let proxy = textDocumentProxy as? UITextDocumentProxy {
-                 let currentPosition = proxy.documentContextBeforeInput?.count ?? 0
-                 lastCursorPosition = currentPosition
-             }
-         }
+    private func saveCurrentCursorPosition() {
+        let currentPosition = textDocumentProxy.documentContextBeforeInput?.count ?? 0
+        lastCursorPosition = currentPosition
+    }
 
          // 커서 위치 변경 확인
-     private func hasCursorPositionChanged() -> Bool {
-         if let proxy = textDocumentProxy as? UITextDocumentProxy {
-             let currentPosition = proxy.documentContextBeforeInput?.count ?? 0
-             return currentPosition != lastCursorPosition
-         }
-         return false
-     }
+    private func hasCursorPositionChanged() -> Bool {
+        let currentPosition = textDocumentProxy.documentContextBeforeInput?.count ?? 0
+        return currentPosition != lastCursorPosition
+    }
     
     override func textWillChange(_ textInput: UITextInput?) {
         super.textWillChange(textInput)
@@ -761,9 +752,10 @@ private func saveCurrentCursorPosition() {
     }
     override func textDidChange(_ textInput: UITextInput?) {
             super.textDidChange(textInput)
-            guard let proxy = textDocumentProxy as? UITextDocumentProxy else { return }
-
-            // 텍스트 입력 창에서의 현재 텍스트 상태 확인
+        guard let proxy = textDocumentProxy as UITextDocumentProxy? else {
+            print("Text document proxy not available")
+            return
+        }            // 텍스트 입력 창에서의 현재 텍스트 상태 확인
             let documentContext = proxy.documentContextBeforeInput ?? ""
             let afterContext = proxy.documentContextAfterInput ?? ""
 
@@ -776,7 +768,10 @@ private func saveCurrentCursorPosition() {
         }
 
     private func checkAndCallAfterDelete() {
-        guard let proxy = textDocumentProxy as? UITextDocumentProxy else { return }
+        guard let proxy = textDocumentProxy as UITextDocumentProxy? else {
+            print("Text document proxy not available")
+            return
+        }
         let currentContext = proxy.documentContextBeforeInput ?? ""
 
         // 커서가 이동하거나 키보드가 해제된 경우 함수를 호출
@@ -1083,7 +1078,7 @@ private func saveCurrentCursorPosition() {
     }
 
     func processInput(_ input: String) {
-        var cursorTemp = lastCursorPosition ?? -1
+        _ = lastCursorPosition ?? -1
         if hasCursorPositionChanged() && delegate?.requestDecomposableState() != true && isDecomposable != true{
               currentHangul.afterDelete()
               delegate?.updateDecomposableState(isDecomposable: false)
@@ -1232,7 +1227,7 @@ class HangulMaker {
             guard let delegate = delegate else { return "\u{0000}"}
             let isDecomposable = delegate.requestDecomposableState()
             let previousCharacter = delegate.requestPreviousCharacter()
-        let justPreviousCharacter = delegate.requestJustPreviousCharacter()
+        _ = delegate.requestJustPreviousCharacter()
             print("Is decomposable: \(isDecomposable)")
             if let character = previousCharacter {
                 print("Previous character: \(character)")
@@ -1306,165 +1301,105 @@ class HangulMaker {
     }
 
     open func commit(_ c: Character) -> Int {
-        var isDecomposable = delegate?.requestDecomposableState()
-        let prevCharInCase0 = delegate?.requestJustPreviousCharacter()
-        var (prevCho0, prevJung0, prevJong0) = ("", "", "")
-        (prevCho0, prevJung0, prevJong0) = decomposeKoreanCharacter(prevCharInCase0 ?? " ")
-            let cInt = Int(c.unicodeScalars.first!.value)
-            if !chos.contains(cInt) && !juns.contains(cInt) && !jons.contains(cInt) {
-                setStateZero()
-                textStorage = String(c)
-                clear()
-                state = 0
-                delegate?.updateDecomposableState(isDecomposable: false)
-                return 0
-            }
-        if delegate?.requestDecomposableState() == true {
-            if prevCho0 != "" && prevJung0 != "" && prevJong0 != "" {
-                state = 3
-            } else if prevCho0 != "" && prevJung0 != "" {
-                cho = Character(prevCho0)
-                jun = Character(prevJung0)
-                state = 2
-            }
-        }
-            switch state {
-                
-            case 0:
-                if juns.contains(cInt) { //ㅏ
-                    setStateZero()
-                    textStorage = String(c)
-                    clear()
-                } else { // ㅂ
-                    state = 1
-                    cho = c
-                    textStorage = String(cho)
-                }
-                delegate?.updateDecomposableState(isDecomposable: true)
-                delegate?.updateDecomposableState(isDecomposable: true)
-            case 1: // ㅂ
-                if chos.contains(cInt) { // ㅂㅂ
-                    setStateZero()
-                    textStorage = String(c)
-                    clear()
-                    cho = c
-                    
-                } else { // 바
-                    state = 2
-                    jun = c
-                    textStorage = String(makeHan())
-                    delegate?.updateDecomposableState(isDecomposable: true)
-                    return 1 // 앞의 텍스트 지우기
-                }
-                delegate?.updateDecomposableState(isDecomposable: true)
-            case 2: //바
-                if jons.contains(cInt) {
-                    jon = c
-                    textStorage = String(makeHan())
-                    state = 3
-                    delegate?.updateDecomposableState(isDecomposable: true)
-                    return 1
-                } else { //바ㅏ
-                    setStateZero()
-                    textStorage = String(c)
-                    clear()
-                    state = 0
-                    if chos.contains(cInt) {
-                        state = 1
-                        cho = c
-                    }
-                }
-                delegate?.updateDecomposableState(isDecomposable: true)
-            case 3: //받
+             let cInt = Int(c.unicodeScalars.first!.value)
+             if !chos.contains(cInt) && !juns.contains(cInt) && !jons.contains(cInt) {
+                 setStateZero()
+                 textStorage = String(c)
+                 clear()
+                 state = 0
+                 return 0
+             }
+             switch state {
+             case 0:
+                 if juns.contains(cInt) { //ㅏ
+                     setStateZero()
+                     textStorage = String(c)
+                     clear()
+                 } else { // ㅂ
+                     state = 1
+                     cho = c
+                     textStorage = String(cho)
+                 }
+             case 1: // ㅂ
+                 if chos.contains(cInt) { // ㅂㅂ
+                     setStateZero()
+                     textStorage = String(c)
+                     clear()
+                     cho = c
+                     
+                 } else { // 바
+                     state = 2
+                     jun = c
+                     textStorage = String(makeHan())
+                     return 1 // 앞의 텍스트 지우기
+                 }
+             case 2: //바
+                 if jons.contains(cInt) {
+                     jon = c
+                     textStorage = String(makeHan())
+                     state = 3
+                     return 1
+                 } else { //바ㅏ
+                     setStateZero()
+                     textStorage = String(c)
+                     clear()
+                     state = 0
+                     if chos.contains(cInt) {
+                         state = 1
+                         cho = c
+                     }
+                 }
+             case 3: //받
+                 if jons.contains(cInt) {
+                     if doubleJonEnable(c) { // 밟
+                         textStorage = String(makeHan())
+                         return 1
+                     } else { //발ㄹ
+                         setStateZero()
+                         textStorage = String(c)
+                         clear()
+                         state = 1
+                         cho = c
+                         textStorage = String(cho)
+                     }
+                 } else if chos.contains(cInt) {
+                     setStateZero()
+                     textStorage = String(c)
+                     clear()
+                     state = 1
+                     cho = c
+                     textStorage = String(cho)
+                     
+                 } else {
+                     var temp: Character = "\u{0000}"
+                     if doubleJonFlag == "\u{0000}" {
+                         temp = jon
+                         jon = "\u{0000}"
+                         setStateZero()
+ //                        textStorage = String(temp) + String(c)
+                     } else {
+                         temp = doubleJonFlag
+                         jon = jonFlag
+ //                        textStorage = String(removeFinalConsonant(hangul: makeHan()))
+                         setStateZero()
+ //                        textStorage = String(temp) + String(c)
+                     }
+                     state = 2
+                     clear()
+                     cho = temp
+                     jun = c
+                     textStorage = removeFirstHangulSyllable(textStorage)
+                     
+                     textStorage.append(String(makeHan()))
+                     
+                     return 2
+                 }
 
-                if jons.contains(cInt) {
-                    if doubleJonEnable(c) { // 밟
-                        textStorage = String(makeHan())
-                        doubleJonFlag = "\u{0000}"
-                        delegate?.updateDecomposableState(isDecomposable: true)
-                        return 1
-                    } else { //발ㄹ
-                        let isDecpmposable = delegate?.requestDecomposableState()
-                        if isDecpmposable == true && state == 1 {
-                            state = 3
-                            textStorage = String(makeHan())
-                            delegate?.updateDecomposableState(isDecomposable: true)
-                            break
-                        }
-                        setStateZero()
-                        textStorage = String(c)
-                        clear()
-                        state = 1
-                        cho = c
-                        textStorage = String(cho)
-                        delegate?.updateDecomposableState(isDecomposable: true)
-                    }
-                } else if chos.contains(cInt) {
-                    setStateZero()
-                    textStorage = String(c)
-                    clear()
-                    state = 1
-                    cho = c
-                    textStorage = String(cho)
-                    delegate?.updateDecomposableState(isDecomposable: true)
-                    
-                } else {
-                    var temp: Character = "\u{0000}"
-                    if delegate?.requestDecomposableState() == true && isDoubleJong(Character(prevJong0)){
-                        let jong = splitDoubleJong(Character(prevJong0))
-                        state = 2
-                        cho = Character(prevCho0)
-                        jun = Character(prevJung0)
-                        jon = jong!.first
-                        textStorage = String(makeHan())
-                        cho = jong!.second
-                        jun = c
-                        jon = "\u{0000}"
-                        textStorage.append(String(makeHan()))
-                        delegate?.updateDecomposableState(isDecomposable: true)
-                        return 2
-                    }
-                    if doubleJonFlag == "\u{0000}" {
-                        temp = jon
-                        jon = "\u{0000}"
-                        setStateZero()
-                        if isDecomposable == true {
-                            state = 2
-                            cho = Character(prevCho0)
-                            jun = Character(prevJung0)
-                            textStorage = String(makeHan())
-                            temp = Character(prevJong0)
-                            cho = temp
-                            jun = c
-                            jon = "\u{0000}"
-                            textStorage.append(String(makeHan()))
-                            delegate?.updateDecomposableState(isDecomposable: true)
-                            return 2
-                        }
-                        delegate?.updateDecomposableState(isDecomposable: true)
-                    } else {
-                        temp = doubleJonFlag
-                        jon = jonFlag
-
-                        setStateZero()
-                        delegate?.updateDecomposableState(isDecomposable: true)
-                    }
-                    state = 2
-                    clear()
-                    cho = temp
-                    jun = c
-                    textStorage = removeFirstHangulSyllable(textStorage)
-                    
-                    textStorage.append(String(makeHan()))
-                    delegate?.updateDecomposableState(isDecomposable: true)
-                    return 2
-                }
-
-            default:
-                break
-            }
-            return 0
-        }
+             default:
+                 break
+             }
+             return 0
+         }
 
     func removeFirstHangulSyllable(_ string: String) -> String {
         if string.isEmpty {
@@ -1549,7 +1484,7 @@ class HangulMaker {
         let prevText = getPrevText()
         let (prevCho, prevJung, prevJong): (String, String, String?) = decomposeKoreanCharacter(prevText)
         let justPrevText = delegate?.requestJustPreviousCharacter()
-        let (justPrevCho, justPrevJung, justPrevJong): (String, String, String?) = decomposeKoreanCharacter(justPrevText ?? "\u{0000}")
+        let (_, _, _): (String, String, String?) = decomposeKoreanCharacter(justPrevText ?? "\u{0000}")
 
             switch state {
             case 0:
