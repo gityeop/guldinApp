@@ -663,6 +663,7 @@ class KeyboardViewController: UIInputViewController {
         hapticGenerator.prepare()
         currentHangul.delegate = self
         loadLexicon()
+        
         }
     @objc func switchToNumberPad() {
         isNumberPad.toggle()
@@ -903,13 +904,16 @@ class KeyboardViewController: UIInputViewController {
 
     func setupNumberPadLayout(stackView: UIStackView) {
         let numberKeys: [[(String, String?, String?, String?, String?)]] = [
-            [("1", "!", "¹", "ˉ", "∑"), ("2", "@", "²", "√", "π"), ("3", "#", "³", "∛", "∩"), ("⌫", nil, nil, nil, nil)], // 1행 4열 백스페이스 키
-            [("4", "$", "¤", "€", "£"), ("5", "%", "‰", "₩", "¥"), ("6", "^", "˄", "˅", "ˆ"), ("$", "¢", "€", "£", "¥")], // 2행 4열 특수문자 키
-            [("7", "&", "§", "¶", "†"), ("8", "*", "⁂", "★", "☆"), ("9", "(", "〔", "【", "『"), ("&", "∧", "∪", "∩", "∑")], // 3행 4열 특수문자 키
-            [("#", "№", "ℓ", "㎏", "㎜"), ("0", ")", "〕", "】", "』"), ("*", "×", "÷", "•", "⁕"), ("@", "©", "®", "™", "✓")]  // 4행 4열 특수문자 키
-        ]
+                [("1", "₩", nil, nil, nil), ("2", "~", nil, nil, nil), ("3", "!", nil, nil, nil), ("⌫", nil, nil, nil, nil)], // 1행 4열 백스페이스 키
+                [("4", "@", nil, "\\", "|"), ("5", "#", nil, ",", "."), ("6", "$", nil, "[", "]"), ("%", "+", "=", nil, nil)], // 2행 4열 특수문자 키
+                [("7", "^", nil, "<", ">"), ("8", "&", nil, "'", "\""), ("9", "*", nil, ";", ":"), ("(", nil, nil, "[", "]")], // 3행 4열 특수문자 키
+                [("[", "]", "\\", "{", "}"), ("0", "-", "_", "(", ")"), ("=", "+", "-", "*", "nil"), ("[", "]", "\\", "{", "}")], // 4행 특수문자 키
+            ]
 
-        for rowKeys in numberKeys {
+        let numberOfRows = numberKeys.count
+        let numberOfColumns = numberKeys[0].count
+        
+        for (rowIndex, rowKeys) in numberKeys.enumerated() {
             let rowStack = UIStackView()
             rowStack.axis = .horizontal
             rowStack.distribution = .fillEqually
@@ -919,7 +923,7 @@ class KeyboardViewController: UIInputViewController {
             rowStack.isLayoutMarginsRelativeArrangement = true
             stackView.addArrangedSubview(rowStack)
 
-            for key in rowKeys {
+            for (colIndex, key) in rowKeys.enumerated() {
                 let keyType: KeyCap.KeyType = key.0 == "⌫" ? .backspace : .character
                 let button = KeyCap(
                     defaultCharacter: key.0,
@@ -931,8 +935,12 @@ class KeyboardViewController: UIInputViewController {
                 )
                 setupButtonAppearance(button: button)
                 rowStack.addArrangedSubview(button)
-                button.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 1 / 5).isActive = true
-                button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 1 / 4.2).isActive = true // 명확한 너비 제약 조건 추가
+
+                // Set height and width constraints
+                let heightMultiplier: CGFloat = 1 / CGFloat(numberOfRows + 1)
+                let widthMultiplier: CGFloat = colIndex == 3 ? 1 / 5 : 1 / 4
+                button.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: heightMultiplier).isActive = true
+                button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: widthMultiplier).isActive = true
             }
         }
 
@@ -953,6 +961,7 @@ class KeyboardViewController: UIInputViewController {
     func setupAlphabetLayout(stackView: UIStackView) {
         let numberOfRows = 5
         let numberOfButtonsPerRow = 4
+
         for row in 0..<numberOfRows {
             let rowStack = UIStackView()
             rowStack.axis = .horizontal
@@ -964,20 +973,23 @@ class KeyboardViewController: UIInputViewController {
             stackView.addArrangedSubview(rowStack)
 
             if row == 4 {
-                 
                 addLastRowButtons(to: rowStack, stackView: stackView)
             } else {
                 for col in 0..<numberOfButtonsPerRow {
                     let button = keyCaps[(row * numberOfButtonsPerRow + col) % keyCaps.count]
-
                     setupButtonAppearance(button: button)
                     rowStack.addArrangedSubview(button)
-                    button.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: 1 / 5).isActive = true
-                    button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 1 / 4.2).isActive = true // 명확한 너비 제약 조건 추가
+
+                    // Set height and width constraints
+                    let heightMultiplier: CGFloat = 1 / CGFloat(numberOfRows)
+                    let widthMultiplier: CGFloat = col == 3 ? 1 / 5 : 1 / 4
+                    button.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: heightMultiplier).isActive = true
+                    button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: widthMultiplier).isActive = true
                 }
             }
         }
     }
+
 
     func addLastRowButtons(to rowStack: UIStackView, stackView: UIStackView) {
         // Add rowStack to stackView with equal height constraint
