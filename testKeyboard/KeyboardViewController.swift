@@ -138,10 +138,19 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
             self.backgroundColor = .systemGray2
         case .custom(_):
             self.backgroundColor = .systemGray2 // 커스텀 버튼의 기본 색상
+        case .function:
+            guard let keyboardVC = findKeyboardViewController() else { return }
+            if keyboardVC.isFunctionMode == true {
+                self.backgroundColor = .systemBlue
+            } else {
+                self.backgroundColor = .systemGray2
+            }
+            
         default:
             self.backgroundColor = .white// 일반 문자 버튼의 기본 색상
             
         }
+        
     }
     private func setupSlideLabels() {
            slideUpLabel = createSlideLabel(with: slideUpCharacter)
@@ -253,12 +262,22 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
             if keyType == .space {
                 resetGestureState()
             }
-            
+            if keyType == .function{
+                    guard let keyboardVC = findKeyboardViewController() else { return }
+                    if keyboardVC.isFunctionMode == true {
+                        self.backgroundColor = .systemBlue
+                    } else {
+                        self.backgroundColor = .systemGray2
+                    }
+                    
+            }
             intermediateDirection = nil
             initialTouchPoint = nil
             isDualDrag = false
             pendingDualSwipe = nil
             hideSlideCharacter()
+            
+            
             
         default:
             break
@@ -394,7 +413,6 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
         }
 
         if let character = characterToInsert, !hasInsertedText {
-            print("Inserted1")
             insertText(character)
             hasInsertedText = true
             lastCharacter = character
@@ -421,7 +439,6 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
         }
 
         if let character = characterToInsert, !hasInsertedText {
-            print("Inserted2")
             insertText(character)
             hasInsertedText = true
             lastCharacter = character
@@ -525,7 +542,12 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
         case .function:
             runFunction()
         }
-
+        guard let keyboardVC = findKeyboardViewController() else { return }
+            if keyboardVC.isFunctionMode == true {
+                keyboardVC.functionButton.backgroundColor = .systemBlue
+            } else {
+                keyboardVC.functionButton.backgroundColor = .systemGray2
+            }
         hideSlideCharacter()
     }
     private func runFunction() {
@@ -655,7 +677,6 @@ protocol KeyboardViewControllerDelegate: AnyObject {
 extension KeyboardViewController: KeyboardViewControllerDelegate {
     func updateDecomposableState(isDecomposable: Bool) {
             self.isDecomposable = isDecomposable
-            print("Decomposable state updated to: \(self.isDecomposable)")
         }
     
     func requestDecomposableState() -> Bool {
@@ -717,19 +738,44 @@ class KeyboardViewController: UIInputViewController {
     private var lexicon: UILexicon?
     var isNumberPad: Bool = false
     var isAlphabetPad: Bool = false
-    var isFunctionMode = false
-        var functionCount = 0
+    var functionCount = 0
+    var functionButton: KeyCap! // 펑션 버튼
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        isNumberPad = false
-        isAlphabetPad = false
-        configureKeyCaps()
-        setupKeyboardLayout()
-        hapticGenerator.prepare()
-        currentHangul.delegate = self
-        loadLexicon()
+        functionButton = KeyCap(defaultCharacter: "⌥", keyType: .function)
+                setupButtonAppearance(button: functionButton)
+                view.addSubview(functionButton)
+                isNumberPad = false
+                isAlphabetPad = false
+                configureKeyCaps()
+                setupKeyboardLayout()
+                hapticGenerator.prepare()
+                currentHangul.delegate = self
+                loadLexicon()
+                isFunctionMode = false// 초기값 설정 후 appearance 업데이트 호출
+                        }
+    var isFunctionMode: Bool = false {
+           didSet {
+               updateFunctionButtonAppearance()
+           }
+       }
+
+       func updateFunctionButtonAppearance() {
+           if isFunctionMode {
+               functionButton.backgroundColor = .systemBlue // 펑션 모드 활성화 시 색상
+               print("blue")
+           } else {
+               functionButton.backgroundColor = .systemGray2 // 펑션 모드 비활성화 시 색상
+               print("gray")
+           }
+       }
+
+        @objc func functionButtonPressed() {
+            isFunctionMode.toggle()
+            print("Function button pressed. isFunctionMode: \(isFunctionMode)")
         }
+
     @objc func switchToNumberPad() {
         isNumberPad = true
         isAlphabetPad = false
@@ -750,12 +796,9 @@ class KeyboardViewController: UIInputViewController {
         requestSupplementaryLexicon { (lexicon) in
             self.lexicon = lexicon
             if let lexicon = self.lexicon {
-                print("Lexicon loaded with \(lexicon.entries.count) entries")
                 for entry in lexicon.entries {
-                    print("Lexicon entry: \(entry.userInput) -> \(entry.documentText)")
                 }
             } else {
-                print("Failed to load lexicon")
             }
         }
     }
@@ -772,7 +815,6 @@ class KeyboardViewController: UIInputViewController {
 
     private func correctTextIfNeeded() {
         guard let proxy = textDocumentProxy as UITextDocumentProxy? else {
-            print("Text document proxy not available")
             return
         }
         let documentContext = proxy.documentContextBeforeInput ?? ""
@@ -784,15 +826,12 @@ class KeyboardViewController: UIInputViewController {
         }
         
         guard let lastWord = words.last else {
-            print("No last word found")
             return
         }
         
-        print("Document context: \(lastWord)")
         
         // 사용자 정의 오타 교정
         if let correctedText = customCorrections[lastWord] {
-            print("사용자 정의 교정어: \(lastWord) -> \(correctedText)")  // 콘솔 로그 추가
             for _ in 0..<lastWord.count {
                 proxy.deleteBackward()
             }
@@ -805,7 +844,6 @@ class KeyboardViewController: UIInputViewController {
             for entry in lexicon.entries {
                 if entry.userInput == lastWord {
                     let correctedText = entry.documentText
-                    print("자동 교정어: \(entry.userInput) -> \(correctedText)")  // 콘솔 로그 추가
                     for _ in 0..<lastWord.count {
                         proxy.deleteBackward()
                     }
@@ -834,7 +872,6 @@ class KeyboardViewController: UIInputViewController {
     override func textDidChange(_ textInput: UITextInput?) {
             super.textDidChange(textInput)
         guard let proxy = textDocumentProxy as UITextDocumentProxy? else {
-            print("Text document proxy not available")
             return
         }            // 텍스트 입력 창에서의 현재 텍스트 상태 확인
             let documentContext = proxy.documentContextBeforeInput ?? ""
@@ -850,7 +887,6 @@ class KeyboardViewController: UIInputViewController {
 
     private func checkAndCallAfterDelete() {
         guard let proxy = textDocumentProxy as UITextDocumentProxy? else {
-            print("Text document proxy not available")
             return
         }
         let currentContext = proxy.documentContextBeforeInput ?? ""
@@ -858,6 +894,7 @@ class KeyboardViewController: UIInputViewController {
         // 커서가 이동하거나 키보드가 해제된 경우 함수를 호출
         if lastDocumentContext != currentContext {
             currentHangul.afterDelete()
+            isFunctionMode = false
             isDecomposable = false  // 커서 이동이나 다른 입력 발생 시 자소 분리 상태 해제
         }
 
@@ -1161,12 +1198,11 @@ class KeyboardViewController: UIInputViewController {
                 spaceButton.layer.shadowRadius = 0
                 continue
             } else if col == 3 {
-                let functionButton = KeyCap(defaultCharacter: "FN", keyType: .function)
-                                functionButton.addTarget(self, action: #selector(handleFunctionKey), for: .touchUpInside)
-                                setupButtonAppearance(button: functionButton)
-                                rowStack.addArrangedSubview(functionButton)
-                                functionButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 10 / 105.5).isActive = true
-                                functionButton.backgroundColor = UIColor(red: 1.0, green: 0.75, blue: 0.8, alpha: 1.0)
+                    functionButton.addTarget(self, action: #selector(handleFunctionKey), for: .touchUpInside)
+                    setupButtonAppearance(button: functionButton)
+                    rowStack.addArrangedSubview(functionButton)
+                    functionButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 10 / 105.5).isActive = true
+                functionButton.backgroundColor = .systemGray2
                                 continue
             }else if col == 4 {
                 let returnButton = KeyCap(defaultCharacter: "\n", keyType: .custom(handleReturn))
@@ -1196,11 +1232,11 @@ class KeyboardViewController: UIInputViewController {
 
     func setupButtonAppearance(button: KeyCap) {
         if button.keyType == .backspace {
-            button.backgroundColor = .systemGray2
-        } else {
-            button.backgroundColor = .white
-        }
-        
+                button.backgroundColor = .systemGray2
+            } else {
+                button.backgroundColor = .white
+            }
+            
         button.layer.cornerRadius = 5
         button.setTitleColor(.black, for: .normal)
         button.setTitleColor(.black, for: .highlighted)
@@ -1268,7 +1304,6 @@ class KeyboardViewController: UIInputViewController {
           if currentHangul.textStorage != "" {
               let result = currentHangul.textStorage
               textDocumentProxy.insertText(result)
-              print("Checking for text correction")
               correctTextIfNeeded()
           }
 
@@ -1333,10 +1368,8 @@ class KeyboardViewController: UIInputViewController {
     }
     func deleteWord() {
         guard let documentContext = textDocumentProxy.documentContextBeforeInput, !documentContext.isEmpty else {
-            print("Document context is empty or nil")
             return
         }
-        print("Current document context: '\(documentContext)'")
 
         // 연속된 같은 특수문자 포함하여 한글 자음, 모음, 숫자, 영문을 구분하는 정규 표현식
         let pattern = "[가-힣]+|[ㄱ-ㅎ]+|[ㅏ-ㅣ]+|\\d+|[A-Za-z]+|((\\p{Punct})\\2*)"
@@ -1402,9 +1435,7 @@ class HangulMaker {
             let isDecomposable = delegate.requestDecomposableState()
             let previousCharacter = delegate.requestPreviousCharacter()
         _ = delegate.requestJustPreviousCharacter()
-            print("Is decomposable: \(isDecomposable)")
             if let character = previousCharacter {
-                print("Previous character: \(character)")
                 return character
             }else{ return "\u{0000}"}
             
@@ -1669,7 +1700,6 @@ class HangulMaker {
             case 1:
                
                 var temp : Character = "\u{0000}"
-                print(prevText)
                 
                 if isDecomposable == true && prevText != "\n" && prevText != " " && isHangulSyllable(prevText){
                     if ((prevJong?.isEmpty) != nil) && jons.contains(Int(cho.unicodeScalars.first!.value)) || chos.contains(Int(cho.unicodeScalars.first!.value)){
@@ -1709,10 +1739,8 @@ class HangulMaker {
             case 2:
                 let prevText = getPrevText()
                 var temp : Character = "\u{0000}"
-                print(prevText)
                 let (prevCho, prevJung, prevJong): (String, String, String) = decomposeKoreanCharacter(prevText)
 
-                print(prevCho, prevJung, prevJong)
                 
 
                 if junFlag != "\u{0000}" {
