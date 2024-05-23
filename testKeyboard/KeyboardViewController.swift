@@ -17,6 +17,7 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
         case space
         case backspace
         case switchKeyPad
+        case function
         case custom(() -> Void)
 
         static func == (lhs: KeyCap.KeyType, rhs: KeyCap.KeyType) -> Bool {
@@ -109,7 +110,9 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
         case .backspace:
             self.setTitle("⌫", for: .normal)
         case .switchKeyPad:
-            self.setTitle("🔄", for: .normal)
+            self.setTitle("⌘", for: .normal)
+        case .function:
+            self.setTitle("⌥", for: .normal)
         }
         self.backgroundColor = .systemGray2
         self.translatesAutoresizingMaskIntoConstraints = false
@@ -302,6 +305,8 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
                 break
             case .switchKeyPad:
                 break
+            case .function:
+                break
             }
 
         case .ended, .cancelled:
@@ -379,6 +384,8 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
             case .switchKeyPad:
                 switchAlphabetPadAction()
             case .custom(let _):
+                break
+            case .function:
                 break
             }
             
@@ -515,10 +522,17 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
             action()
         case .switchKeyPad:
             switchHangulPadAction()
+        case .function:
+            runFunction()
         }
 
         hideSlideCharacter()
     }
+    private func runFunction() {
+           guard let keyboardVC = findKeyboardViewController() else { return }
+           keyboardVC.handleFunctionKey()
+       }
+
     private func switchNumPadAction() {
         if let keyboardVC = findKeyboardViewController() {
             keyboardVC.switchToNumberPad()
@@ -703,6 +717,9 @@ class KeyboardViewController: UIInputViewController {
     private var lexicon: UILexicon?
     var isNumberPad: Bool = false
     var isAlphabetPad: Bool = false
+    var isFunctionMode = false
+        var functionCount = 0
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         isNumberPad = false
@@ -742,7 +759,11 @@ class KeyboardViewController: UIInputViewController {
             }
         }
     }
-    
+    @objc func handleFunctionKey() {
+            isFunctionMode = true
+            functionCount = 0
+            // 사용자에게 숫자를 입력하라는 지시를 줄 수 있는 방법을 추가할 수 있습니다.
+        }
     // 오타 교정 사전 정의
     let customCorrections: [String: String] = [
         "과아수쇗": "과일 주스",
@@ -1139,7 +1160,15 @@ class KeyboardViewController: UIInputViewController {
                 spaceButton.layer.shadowOpacity = 0.5
                 spaceButton.layer.shadowRadius = 0
                 continue
-            } else if col == 4 {
+            } else if col == 3 {
+                let functionButton = KeyCap(defaultCharacter: "FN", keyType: .function)
+                                functionButton.addTarget(self, action: #selector(handleFunctionKey), for: .touchUpInside)
+                                setupButtonAppearance(button: functionButton)
+                                rowStack.addArrangedSubview(functionButton)
+                                functionButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 10 / 105.5).isActive = true
+                                functionButton.backgroundColor = UIColor(red: 1.0, green: 0.75, blue: 0.8, alpha: 1.0)
+                                continue
+            }else if col == 4 {
                 let returnButton = KeyCap(defaultCharacter: "\n", keyType: .custom(handleReturn))
                 returnButton.setTitle("return", for: .normal)
                 returnButton.backgroundColor = .systemGray2
@@ -1208,6 +1237,21 @@ class KeyboardViewController: UIInputViewController {
     }
 
     func processInput(_ input: String) {
+        if isFunctionMode {
+                    if let number = Int(input) {
+                        functionCount = functionCount * 10 + number
+                        return
+                    } else {
+                        isFunctionMode = false
+                        if functionCount > 0 {
+                            for _ in 0..<functionCount {
+                                textDocumentProxy.insertText(input)
+                            }
+                            functionCount = 0
+                        }
+                        return
+                    }
+                }
         _ = lastCursorPosition ?? -1
         if hasCursorPositionChanged() && delegate?.requestDecomposableState() != true && isDecomposable != true{
               currentHangul.afterDelete()

@@ -14,8 +14,8 @@
             filePath = "testKeyboard/KeyboardViewController.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1613"
-            endingLineNumber = "1613"
+            startingLineNumber = "1770"
+            endingLineNumber = "1770"
             landmarkName = "delete()"
             landmarkType = "7">
          </BreakpointContent>
@@ -30,9 +30,9 @@
             filePath = "testKeyboard/KeyboardViewController.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1666"
-            endingLineNumber = "1666"
-            landmarkName = "delete()"
+            startingLineNumber = "1823"
+            endingLineNumber = "1823"
+            landmarkName = "doubleJunEnable(_:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
