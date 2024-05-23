@@ -128,13 +128,13 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
     @objc private func touchUp() {
         switch keyType {
         case .backspace:
-            self.backgroundColor = .systemGray2 // 백스페이스 버튼의 기본 색상
+            self.backgroundColor = UIColor(red: 1.0, green: 0.7, blue: 0.7, alpha: 1.0) // 백스페이스 버튼의 기본 색상
         case .space:
             self.backgroundColor = .white // 스페이스 버튼의 기본 색상
         case .switchKeyPad:
-            self.backgroundColor = .systemGray2
+            self.backgroundColor = UIColor(red: 1.0, green: 0.7, blue: 0.7, alpha: 1.0)
         case .custom(_):
-            self.backgroundColor = .systemGray2 // 커스텀 버튼의 기본 색상
+            self.backgroundColor = UIColor(red: 1.0, green: 0.7, blue: 0.7, alpha: 1.0) // 커스텀 버튼의 기본 색상
         default:
             self.backgroundColor = .white// 일반 문자 버튼의 기본 색상
             
@@ -886,7 +886,7 @@ class KeyboardViewController: UIInputViewController {
                    KeyCap(defaultCharacter: "ㅅ", slideUpCharacter: "ㅆ", slideDownCharacter: "2",
                           slideLeftCharacter: "1", slideRightCharacter: "3"),
                    KeyCap(defaultCharacter: "ㅇ",
-                          slideUpCharacter: "💩",
+                          slideUpCharacter: "🩵",
                           slideDownCharacter: "5",
                           slideLeftCharacter: "4", slideRightCharacter: "6"),
                    KeyCap(defaultCharacter: "ㅡ",
@@ -935,6 +935,7 @@ class KeyboardViewController: UIInputViewController {
     func setupKeyboardLayout() {
         // 기존 모든 뷰를 제거합니다
         view.subviews.forEach { $0.removeFromSuperview() }
+        view.backgroundColor = UIColor(red: 1.0, green: 0.85, blue: 0.9, alpha: 1.0)
 
         let stackView = UIStackView()
         stackView.axis = .vertical
@@ -1117,12 +1118,13 @@ class KeyboardViewController: UIInputViewController {
         for col in 0..<5 {
             if col == 0 {
                 let numberPadButton = KeyCap(defaultCharacter: "#", keyType: .switchKeyPad)
-                numberPadButton.setTitle("⌘", for: .normal)
+                numberPadButton.setTitle("💗", for: .normal)
                                           
                 setupButtonAppearance(button: numberPadButton)
                 rowStack.addArrangedSubview(numberPadButton)
                 numberPadButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 10 / 105.5).isActive = true
-                numberPadButton.backgroundColor = .systemGray2
+                numberPadButton.backgroundColor = UIColor(red: 1.0, green: 0.7, blue: 0.7, alpha: 1.0)
+
                 continue
             } else if col == 2 {
                 let spaceButton = KeyCap(defaultCharacter: " ", keyType: .space)
@@ -1142,7 +1144,8 @@ class KeyboardViewController: UIInputViewController {
             } else if col == 4 {
                 let returnButton = KeyCap(defaultCharacter: "\n", keyType: .custom(handleReturn))
                 returnButton.setTitle("return", for: .normal)
-                returnButton.backgroundColor = .systemGray2
+                returnButton.backgroundColor = UIColor(red: 1.0, green: 0.7, blue: 0.7, alpha: 1.0)
+
                 returnButton.layer.cornerRadius = 5
                 returnButton.titleLabel?.font = .systemFont(ofSize: 15)
                 returnButton.setTitleColor(.black, for: .normal)
@@ -1167,7 +1170,8 @@ class KeyboardViewController: UIInputViewController {
 
     func setupButtonAppearance(button: KeyCap) {
         if button.keyType == .backspace {
-            button.backgroundColor = .systemGray2
+            button.backgroundColor = UIColor(red: 1.0, green: 0.7, blue: 0.7, alpha: 1.0)
+
         } else {
             button.backgroundColor = .white
         }
