@@ -2,16 +2,26 @@ import UIKit
 import CoreHaptics
 import SwiftUI
 
+extension KeyCap {
+    static func emptyKey() -> KeyCap {
+        let key = KeyCap(defaultCharacter: "", keyType: .custom {})
+        key.isUserInteractionEnabled = false
+        key.backgroundColor = .clear
+        return key
+    }
+}
+
 class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
     enum KeyType: Equatable {
         case character
         case space
         case backspace
+        case switchKeyPad
         case custom(() -> Void)
 
         static func == (lhs: KeyCap.KeyType, rhs: KeyCap.KeyType) -> Bool {
             switch (lhs, rhs) {
-            case (.character, .character), (.space, .space), (.backspace, .backspace):
+            case (.character, .character), (.space, .space), (.backspace, .backspace), (.switchKeyPad, .switchKeyPad):
                 return true
             case (.custom(_), .custom(_)):
                 // 클로저 비교는 가능하지 않으므로, 동일성을 확인할 수 있는 다른 방법이 필요
@@ -98,6 +108,8 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
             self.setTitle("␣", for: .normal)
         case .backspace:
             self.setTitle("⌫", for: .normal)
+        case .switchKeyPad:
+            self.setTitle("🔄", for: .normal)
         }
         self.backgroundColor = .systemGray2
         self.translatesAutoresizingMaskIntoConstraints = false
@@ -119,6 +131,8 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
             self.backgroundColor = .systemGray2 // 백스페이스 버튼의 기본 색상
         case .space:
             self.backgroundColor = .white // 스페이스 버튼의 기본 색상
+        case .switchKeyPad:
+            self.backgroundColor = .systemGray2
         case .custom(_):
             self.backgroundColor = .systemGray2 // 커스텀 버튼의 기본 색상
         default:
@@ -286,6 +300,8 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
                 break
             case .custom(_):
                 break
+            case .switchKeyPad:
+                break
             }
 
         case .ended, .cancelled:
@@ -335,10 +351,10 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
         case .up:
             switch keyType {
         case .backspace:
-            
            deleteText()
-
-           default:
+        case .switchKeyPad:
+            switchNumPadAction()
+       default:
                characterToInsert = slideUpCharacter
            }
         case .down:
@@ -353,7 +369,19 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
         case .left:
             characterToInsert = slideLeftCharacter
         case .right:
-            characterToInsert = slideRightCharacter
+            switch keyType {
+            case .character:
+                characterToInsert = slideRightCharacter
+            case .space:
+                break
+            case .backspace:
+                break
+            case .switchKeyPad:
+                switchAlphabetPadAction()
+            case .custom(let _):
+                break
+            }
+            
         default:
             break
         }
@@ -485,10 +513,30 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
             delegate?.updateDecomposableState(isDecomposable: false)
         case .custom(let action):
             action()
+        case .switchKeyPad:
+            switchHangulPadAction()
         }
 
         hideSlideCharacter()
     }
+    private func switchNumPadAction() {
+        if let keyboardVC = findKeyboardViewController() {
+            keyboardVC.switchToNumberPad()
+        }
+    }
+    private func switchAlphabetPadAction() {
+        if let keyboardVC = findKeyboardViewController() {
+            keyboardVC.switchToAlphabetPad()
+        }
+    }
+    private func switchHangulPadAction() {
+        if let keyboardVC = findKeyboardViewController() {
+            keyboardVC.switchToHangulPad()
+        }
+    }
+
+
+
     private func moveCursor(direction offset: Int) {
         guard let keyboardVC = findKeyboardViewController() else { return }
         keyboardVC.textDocumentProxy.adjustTextPosition(byCharacterOffset: offset)
@@ -654,22 +702,33 @@ class KeyboardViewController: UIInputViewController {
     var lastCursorPosition: Int?
     private var lexicon: UILexicon?
     var isNumberPad: Bool = false
-    
+    var isAlphabetPad: Bool = false
     override func viewDidLoad() {
         super.viewDidLoad()
         isNumberPad = false
+        isAlphabetPad = false
         configureKeyCaps()
         setupKeyboardLayout()
         hapticGenerator.prepare()
         currentHangul.delegate = self
         loadLexicon()
-        
         }
     @objc func switchToNumberPad() {
-        isNumberPad.toggle()
+        isNumberPad = true
+        isAlphabetPad = false
         setupKeyboardLayout()
     }
-
+    
+    @objc func switchToAlphabetPad() {
+        isNumberPad = false
+        isAlphabetPad = true
+        setupKeyboardLayout()
+    }
+    @objc func switchToHangulPad() {
+        isNumberPad = false
+        isAlphabetPad = false
+        setupKeyboardLayout()
+    }
     private func loadLexicon() {
         requestSupplementaryLexicon { (lexicon) in
             self.lexicon = lexicon
@@ -897,8 +956,67 @@ class KeyboardViewController: UIInputViewController {
 
         if isNumberPad {
             setupNumberPadLayout(stackView: stackView)
+        } else if isAlphabetPad {
+            setupAlphabetPadLayout(stackView: stackView)
         } else {
-            setupAlphabetLayout(stackView: stackView)
+            setupHangulLayout(stackView: stackView)
+        }
+    }
+
+    func setupAlphabetPadLayout(stackView: UIStackView) {
+        let rows: [[(String, String?, String?)]] = [
+            [("q", "Q", "1"), ("w", "W", "2"), ("e", "E", "3"), ("r", "R", "4"), ("t", "T", "5"), ("y", "Y", "6"), ("u", "U", "7"), ("i", "I", "8"), ("o", "O", "9"), ("p", "P", "0")],
+            [("", nil, nil),("a", "A", nil), ("s", "S", nil), ("d", "D", nil), ("f", "F", nil), ("g", "G", nil), ("h", "H", nil), ("j", "J", nil), ("k", "K", nil), ("l", "L", nil),("", nil, nil)],
+            [("",nil, nil),("",nil, nil),("",nil, nil),("z", "Z", nil), ("x", "X", nil), ("c", "C", nil), ("v", "V", nil), ("b", "B", nil), ("n", "N", nil), ("m", "M", nil),("",nil, nil), ("⌫", nil, nil)]
+        ]
+        
+        let numberOfRows = 4
+        let buttonHeightMultiplier: CGFloat = 1 / CGFloat(numberOfRows) // 각 버튼의 높이를 stackView 높이에 대한 비율로 설정
+        let buttonWidthMultiplier: CGFloat = 1 / 11.1// 각 버튼의 너비를 비율로 설정 (한 행에 10개의 버튼)
+        let emptyButtonWidthMultiplier: CGFloat = 1 / 25 // 빈 버튼의 너비를 비율로 설정
+        for row in 0..<numberOfRows {
+                let rowStack = UIStackView()
+                rowStack.axis = .horizontal
+                rowStack.distribution = .fillEqually
+                rowStack.alignment = .fill
+                rowStack.spacing = 3
+                rowStack.layoutMargins = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 4)
+                rowStack.isLayoutMarginsRelativeArrangement = true
+                stackView.addArrangedSubview(rowStack)
+            if row == 0 {
+                rowStack.topAnchor.constraint(equalTo: stackView.topAnchor, constant: 5).isActive = true // 위쪽 마진 추가
+            }
+                // rowStack의 높이 제약 조건 추가
+                rowStack.heightAnchor.constraint(equalTo: stackView.heightAnchor, multiplier: buttonHeightMultiplier).isActive = true
+
+                if row == numberOfRows - 1 {
+                    addLastRowButtons(to: rowStack, stackView: stackView)
+                } else {
+                    for (defaultChar, slideUpChar, slideDownChar) in rows[row] {
+                        if defaultChar.isEmpty {
+                            let emptyButton = KeyCap.emptyKey()
+                            rowStack.addArrangedSubview(emptyButton)
+                            
+                            // 빈 버튼 높이 및 너비 제약 조건 추가
+                            emptyButton.heightAnchor.constraint(equalTo: rowStack.heightAnchor).isActive = true
+                            emptyButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: emptyButtonWidthMultiplier).isActive = true
+                        } else {
+                            let keyType: KeyCap.KeyType = defaultChar == "⌫" ? .backspace : .character
+                            let button = KeyCap(
+                                defaultCharacter: defaultChar,
+                                slideUpCharacter: slideUpChar,
+                                slideDownCharacter: slideDownChar,
+                                keyType: keyType
+                            )
+                            setupButtonAppearance(button: button)
+                            rowStack.addArrangedSubview(button)
+                            
+                            // 버튼 높이 및 너비 제약 조건 추가
+                            button.heightAnchor.constraint(equalTo: rowStack.heightAnchor, multiplier: 0.9).isActive = true
+                            button.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: buttonWidthMultiplier).isActive = true
+                        }
+                    }
+                }
         }
     }
 
@@ -958,7 +1076,7 @@ class KeyboardViewController: UIInputViewController {
 
 
 
-    func setupAlphabetLayout(stackView: UIStackView) {
+    func setupHangulLayout(stackView: UIStackView) {
         let numberOfRows = 5
         let numberOfButtonsPerRow = 4
 
@@ -998,8 +1116,8 @@ class KeyboardViewController: UIInputViewController {
         
         for col in 0..<5 {
             if col == 0 {
-                let numberPadButton = KeyCap(defaultCharacter: "#", keyType: .custom(switchToNumberPad))
-                numberPadButton.setTitle(isNumberPad ? "ABC" : "123", for: .normal)
+                let numberPadButton = KeyCap(defaultCharacter: "#", keyType: .switchKeyPad)
+                numberPadButton.setTitle("⌘", for: .normal)
                                           
                 setupButtonAppearance(button: numberPadButton)
                 rowStack.addArrangedSubview(numberPadButton)
