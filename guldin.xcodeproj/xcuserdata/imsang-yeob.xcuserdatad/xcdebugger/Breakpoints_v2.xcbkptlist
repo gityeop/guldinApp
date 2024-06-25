@@ -8,46 +8,16 @@
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
             uuid = "8081BE27-7DC7-48C7-B378-CAA7606AB969"
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "testKeyboard/KeyboardViewController.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1798"
-            endingLineNumber = "1798"
+            startingLineNumber = "1846"
+            endingLineNumber = "1846"
             landmarkName = "delete()"
             landmarkType = "7">
-            <Locations>
-               <Location
-                  uuid = "8081BE27-7DC7-48C7-B378-CAA7606AB969 - c5b0f3db8297171a"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "testKeyboard.HangulMaker.delete() -&gt; ()"
-                  moduleName = "testKeyboard"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/imsang-yeob/%E1%84%86%E1%85%AE%E1%86%AB%E1%84%89%E1%85%A5/Coding/guldin_keyboard/guldin/testKeyboard/KeyboardViewController.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "1799"
-                  endingLineNumber = "1799">
-               </Location>
-               <Location
-                  uuid = "8081BE27-7DC7-48C7-B378-CAA7606AB969 - c5b0f3db8297173d"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "testKeyboard.HangulMaker.delete() -&gt; ()"
-                  moduleName = "testKeyboard"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/imsang-yeob/%E1%84%86%E1%85%AE%E1%86%AB%E1%84%89%E1%85%A5/Coding/guldin_keyboard/guldin/testKeyboard/KeyboardViewController.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "1798"
-                  endingLineNumber = "1798">
-               </Location>
-            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -60,40 +30,10 @@
             filePath = "testKeyboard/KeyboardViewController.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1851"
-            endingLineNumber = "1851"
+            startingLineNumber = "1899"
+            endingLineNumber = "1899"
             landmarkName = "doubleJunEnable(_:)"
             landmarkType = "7">
-            <Locations>
-               <Location
-                  uuid = "39D755CE-2473-4E6C-AB15-DF71D2999E1C - 2d897b356508cbfa"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "testKeyboard.HangulMaker.doubleJunEnable(Swift.Character) -&gt; Swift.Bool"
-                  moduleName = "testKeyboard"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/imsang-yeob/%E1%84%86%E1%85%AE%E1%86%AB%E1%84%89%E1%85%A5/Coding/guldin_keyboard/guldin/testKeyboard/KeyboardViewController.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "1853"
-                  endingLineNumber = "1853">
-               </Location>
-               <Location
-                  uuid = "39D755CE-2473-4E6C-AB15-DF71D2999E1C - 2d897b356508cb99"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "testKeyboard.HangulMaker.doubleJunEnable(Swift.Character) -&gt; Swift.Bool"
-                  moduleName = "testKeyboard"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/imsang-yeob/%E1%84%86%E1%85%AE%E1%86%AB%E1%84%89%E1%85%A5/Coding/guldin_keyboard/guldin/testKeyboard/KeyboardViewController.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "1852"
-                  endingLineNumber = "1852">
-               </Location>
-            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -106,9 +46,57 @@
             filePath = "testKeyboard/KeyboardViewController.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "746"
-            endingLineNumber = "746"
+            startingLineNumber = "756"
+            endingLineNumber = "756"
             landmarkName = "viewDidLoad()"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "4CEF8CBF-9722-482D-901B-35475D0ACD1A"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "testKeyboard/KeyboardViewController.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "609"
+            endingLineNumber = "609"
+            landmarkName = "insertText(_:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "3554A624-F0B2-420D-B121-022FA79F0627"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "testKeyboard/KeyboardViewController.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "632"
+            endingLineNumber = "632"
+            landmarkName = "insertSpace()"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "05953010-D59E-4C80-AE4C-518D47A8AD57"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "testKeyboard/KeyboardViewController.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "539"
+            endingLineNumber = "539"
+            landmarkName = "keyPressed()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

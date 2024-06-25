@@ -387,11 +387,24 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
                                 
                    deleteWord()
 
-                   default:
-                       characterToInsert = slideDownCharacter
+                default:
+                    characterToInsert = slideDownCharacter
                    }
         case .left:
-            characterToInsert = slideLeftCharacter
+            switch keyType {
+            case .character:
+                characterToInsert = slideLeftCharacter
+            case .space:
+                break
+            case .backspace:
+                break
+            case .switchKeyPad:
+                break
+            case .custom(let _):
+                break
+            case .function:
+                break
+            }
         case .right:
             switch keyType {
             case .character:
@@ -533,7 +546,7 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
         case .backspace:
             deleteText()
         case .space:
-            insertSpace(defaultCharacter)
+            insertSpace()
             delegate?.updateDecomposableState(isDecomposable: false)
         case .custom(let action):
             action()
@@ -615,19 +628,16 @@ class KeyCap: UIButton, UIInputViewAudioFeedback, UITextInputTraits {
             }
         }
 
-    fileprivate func insertSpace(_ text: String) {
-            guard !text.isEmpty else { return }
-            var nextResponder: UIResponder? = self
-            while let responder = nextResponder {
-                if let inputViewController = responder as? KeyboardViewController {
-                    inputViewController.processInput(" ")
-                    
-                    break
-                }
-                nextResponder = responder.next
+    fileprivate func insertSpace() {  // Updated to not require parameters
+        var nextResponder: UIResponder? = self
+        while let responder = nextResponder {
+            if let inputViewController = responder as? KeyboardViewController {
+                inputViewController.processInput(" ")
+                break
             }
+            nextResponder = responder.next
         }
-
+    }
         fileprivate func deleteAll() {
             var nextResponder: UIResponder? = self
             while let responder = nextResponder {
@@ -764,16 +774,13 @@ class KeyboardViewController: UIInputViewController {
        func updateFunctionButtonAppearance() {
            if isFunctionMode {
                functionButton.backgroundColor = .systemBlue // 펑션 모드 활성화 시 색상
-               print("blue")
            } else {
                functionButton.backgroundColor = .systemGray2 // 펑션 모드 비활성화 시 색상
-               print("gray")
            }
        }
 
         @objc func functionButtonPressed() {
             isFunctionMode.toggle()
-            print("Function button pressed. isFunctionMode: \(isFunctionMode)")
         }
 
     @objc func switchToNumberPad() {
@@ -1080,10 +1087,10 @@ class KeyboardViewController: UIInputViewController {
 
     func setupNumberPadLayout(stackView: UIStackView) {
         let numberKeys: [[(String, String?, String?, String?, String?)]] = [
-                [("1", "₩", nil, nil, nil), ("2", "~", nil, nil, nil), ("3", "!", nil, nil, nil), ("⌫", nil, nil, nil, nil)], // 1행 4열 백스페이스 키
-                [("4", "@", nil, "\\", "|"), ("5", "#", nil, ",", "."), ("6", "$", nil, "[", "]"), ("%", "+", "=", nil, nil)], // 2행 4열 특수문자 키
-                [("7", "^", nil, "<", ">"), ("8", "&", nil, "'", "\""), ("9", "*", nil, ";", ":"), ("(", nil, nil, "[", "]")], // 3행 4열 특수문자 키
-                [("[", "]", "\\", "{", "}"), ("0", "-", "_", "(", ")"), ("=", "+", "-", "*", "nil"), ("[", "]", "\\", "{", "}")], // 4행 특수문자 키
+                [("1", "!", nil, "₩", "~"), ("2", "@", nil, nil, nil), ("3", "#", nil, nil, nil), ("⌫", nil, nil, nil, nil)], // 1행 4열 백스페이스 키
+                [("4", "$", nil, "\\", "|"), ("5", "%", ".", ",", "."), ("6", "^", nil, "[", "]"), ("=", "*", "%", "-", "+")], // 2행 4열 특수문자 키
+                [("7", "&", nil, "<", ">"), ("8", "*", nil, "'", "\""), ("9", "?", "/", ";", ":"), ("(", nil, nil, "[", "]")], // 3행 4열 특수문자 키
+                [("[", "]", ";", "{", "}"), ("0", "-", "_", "(", ")"), ("=", "+", "-", "*", nil), ("[", "]", "\\", "{", "}")], // 4행 특수문자 키
             ]
 
         let numberOfRows = numberKeys.count
@@ -1182,11 +1189,21 @@ class KeyboardViewController: UIInputViewController {
                 numberPadButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 10 / 105.5).isActive = true
                 numberPadButton.backgroundColor = .systemGray2
                 continue
+            } else if col == 1 { // 이모지 버튼 추가
+                let emojiButton = KeyCap(defaultCharacter: "😊", keyType: .custom { [weak self] in
+                    self?.switchToEmojiKeyboard()
+                })
+                emojiButton.setTitle("😊", for: .normal)
+                setupButtonAppearance(button: emojiButton)
+                rowStack.addArrangedSubview(emojiButton)
+                emojiButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 10 / 105.5).isActive = true
+                emojiButton.backgroundColor = .systemGray2
+                continue
             } else if col == 2 {
                 let spaceButton = KeyCap(defaultCharacter: " ", keyType: .space)
                 spaceButton.setTitle("space", for: .normal)
                 rowStack.addArrangedSubview(spaceButton)
-                spaceButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 45 / 105.5).isActive = true
+                spaceButton.widthAnchor.constraint(equalTo: rowStack.widthAnchor, multiplier: 45 / 100).isActive = true
                 spaceButton.backgroundColor = .white
                 spaceButton.layer.cornerRadius = 5
                 spaceButton.setTitleColor(.black, for: .normal)
@@ -1229,7 +1246,11 @@ class KeyboardViewController: UIInputViewController {
     }
 
 
-
+    @objc private func switchToEmojiKeyboard() {
+//        textDocumentProxy.insertText("😊") // 텍스트 삽입
+//        textDocumentProxy.adjustTextPosition(byCharacterOffset: -1) // 커서를 이모지 뒤로 이동
+        advanceToNextInputMode() // 다음 입력 모드로 전환
+    }
     func setupButtonAppearance(button: KeyCap) {
         if button.keyType == .backspace {
                 button.backgroundColor = .systemGray2
@@ -1273,42 +1294,58 @@ class KeyboardViewController: UIInputViewController {
     }
 
     func processInput(_ input: String) {
-        if isFunctionMode {
-                    if let number = Int(input) {
-                        functionCount = functionCount * 10 + number
-                        return
-                    } else {
-                        isFunctionMode = false
-                        if functionCount > 0 {
-                            for _ in 0..<functionCount {
-                                textDocumentProxy.insertText(input)
-                            }
-                            functionCount = 0
-                        }
-                        return
-                    }
-                }
-        _ = lastCursorPosition ?? -1
-        if hasCursorPositionChanged() && delegate?.requestDecomposableState() != true && isDecomposable != true{
-              currentHangul.afterDelete()
-              delegate?.updateDecomposableState(isDecomposable: false)
-          }
-          for character in input {
-              let result = currentHangul.commit(character)
-              if result == 1 {
-                  textDocumentProxy.deleteBackward()
-              } else if result == 2 {
-                  textDocumentProxy.deleteBackward()
-              }
-          }
-          if currentHangul.textStorage != "" {
-              let result = currentHangul.textStorage
-              textDocumentProxy.insertText(result)
-              correctTextIfNeeded()
-          }
+        print("Processing input: \(input)") // Log input
 
-          saveCurrentCursorPosition()
-      }
+        if isFunctionMode {
+            if let number = Int(input) {
+                functionCount = functionCount * 10 + number
+                print("Function count updated: \(functionCount)")
+                return
+            } else {
+                isFunctionMode = false
+                if functionCount > 0 {
+                    for _ in 0..<functionCount {
+                        textDocumentProxy.insertText(input)
+                    }
+                    functionCount = 0
+                    print("Inserted \(input) \(functionCount) times")
+                }
+                return
+            }
+        }
+
+        _ = lastCursorPosition ?? -1
+        if hasCursorPositionChanged() && delegate?.requestDecomposableState() != true && isDecomposable != true {
+            currentHangul.afterDelete()
+            delegate?.updateDecomposableState(isDecomposable: false)
+            print("Cursor position changed, updated decomposable state")
+        }
+
+        for character in input {
+            print("Committing character: \(character)") // Log each character
+            let result = currentHangul.commit(character)
+            if result == 1 || result == 2 {
+                textDocumentProxy.deleteBackward()
+                print("Deleted one character due to commit result \(result)")
+            }
+        }
+
+        // Avoid inserting text directly here for spaces, since commit already handles it
+        if currentHangul.textStorage != "" && !input.isEmpty && !input.contains(" ") {
+            let result = currentHangul.textStorage
+            textDocumentProxy.insertText(result)
+            print("Inserted text from textStorage: \(result)")
+            correctTextIfNeeded()
+        }
+
+        if input.contains(" ") {
+            textDocumentProxy.insertText(" ")
+            print("Inserted space character")
+        }
+
+        saveCurrentCursorPosition()
+    }
+
 
     func deleteBackward() {
         let prevState = currentHangul.state
@@ -1506,105 +1543,116 @@ class HangulMaker {
     }
 
     open func commit(_ c: Character) -> Int {
-             let cInt = Int(c.unicodeScalars.first!.value)
-             if !chos.contains(cInt) && !juns.contains(cInt) && !jons.contains(cInt) {
-                 setStateZero()
-                 textStorage = String(c)
-                 clear()
-                 state = 0
-                 return 0
-             }
-             switch state {
-             case 0:
-                 if juns.contains(cInt) { //ㅏ
-                     setStateZero()
-                     textStorage = String(c)
-                     clear()
-                 } else { // ㅂ
-                     state = 1
-                     cho = c
-                     textStorage = String(cho)
-                 }
-             case 1: // ㅂ
-                 if chos.contains(cInt) { // ㅂㅂ
-                     setStateZero()
-                     textStorage = String(c)
-                     clear()
-                     cho = c
-                     
-                 } else { // 바
-                     state = 2
-                     jun = c
-                     textStorage = String(makeHan())
-                     return 1 // 앞의 텍스트 지우기
-                 }
-             case 2: //바
-                 if jons.contains(cInt) {
-                     jon = c
-                     textStorage = String(makeHan())
-                     state = 3
-                     return 1
-                 } else { //바ㅏ
-                     setStateZero()
-                     textStorage = String(c)
-                     clear()
-                     state = 0
-                     if chos.contains(cInt) {
-                         state = 1
-                         cho = c
-                     }
-                 }
-             case 3: //받
-                 if jons.contains(cInt) {
-                     if doubleJonEnable(c) { // 밟
-                         textStorage = String(makeHan())
-                         return 1
-                     } else { //발ㄹ
-                         setStateZero()
-                         textStorage = String(c)
-                         clear()
-                         state = 1
-                         cho = c
-                         textStorage = String(cho)
-                     }
-                 } else if chos.contains(cInt) {
-                     setStateZero()
-                     textStorage = String(c)
-                     clear()
-                     state = 1
-                     cho = c
-                     textStorage = String(cho)
-                     
-                 } else {
-                     var temp: Character = "\u{0000}"
-                     if doubleJonFlag == "\u{0000}" {
-                         temp = jon
-                         jon = "\u{0000}"
-                         setStateZero()
- //                        textStorage = String(temp) + String(c)
-                     } else {
-                         temp = doubleJonFlag
-                         jon = jonFlag
- //                        textStorage = String(removeFinalConsonant(hangul: makeHan()))
-                         setStateZero()
- //                        textStorage = String(temp) + String(c)
-                     }
-                     state = 2
-                     clear()
-                     cho = temp
-                     jun = c
-                     textStorage = removeFirstHangulSyllable(textStorage)
-                     
-                     textStorage.append(String(makeHan()))
-                     
-                     return 2
-                 }
+        let cInt = Int(c.unicodeScalars.first!.value)
+        print("Committing character: \(c) with unicode: \(cInt) in state: \(state)")
+        
+        if !chos.contains(cInt) && !juns.contains(cInt) && !jons.contains(cInt) {
+            setStateZero()
+            textStorage = String(c)
+            clear()
+            state = 0
+            print("Non-Hangul character committed: \(c). State reset to 0. TextStorage: \(textStorage)")
+            return 0
+        }
+        
+        switch state {
+        case 0:
+            if juns.contains(cInt) { //ㅏ
+                setStateZero()
+                textStorage = String(c)
+                clear()
+                print("State 0, vowel: \(c). TextStorage: \(textStorage)")
+            } else { // ㅂ
+                state = 1
+                cho = c
+                textStorage = String(cho)
+                print("State 0, consonant: \(c). Moving to state 1. TextStorage: \(textStorage)")
+            }
+        case 1: // ㅂ
+            if chos.contains(cInt) { // ㅂㅂ
+                setStateZero()
+                textStorage = String(c)
+                clear()
+                cho = c
+                print("State 1, double consonant: \(c). Resetting state. TextStorage: \(textStorage)")
+            } else { // 바
+                state = 2
+                jun = c
+                textStorage = String(makeHan())
+                print("State 1, forming syllable with vowel: \(c). Moving to state 2. TextStorage: \(textStorage)")
+                return 1 // 앞의 텍스트 지우기
+            }
+        case 2: //바
+            if jons.contains(cInt) {
+                jon = c
+                textStorage = String(makeHan())
+                state = 3
+                print("State 2, final consonant: \(c). Moving to state 3. TextStorage: \(textStorage)")
+                return 1
+            } else { //바ㅏ
+                setStateZero()
+                textStorage = String(c)
+                clear()
+                state = 0
+                print("State 2, vowel after syllable: \(c). Resetting state. TextStorage: \(textStorage)")
+                if chos.contains(cInt) {
+                    state = 1
+                    cho = c
+                    print("State 2, new consonant after reset: \(c). Moving to state 1. TextStorage: \(textStorage)")
+                }
+            }
+        case 3: //받
+            if jons.contains(cInt) {
+                if doubleJonEnable(c) { // 밟
+                    textStorage = String(makeHan())
+                    print("State 3, double final consonant: \(c). TextStorage: \(textStorage)")
+                    return 1
+                } else { //발ㄹ
+                    setStateZero()
+                    textStorage = String(c)
+                    clear()
+                    state = 1
+                    cho = c
+                    textStorage = String(cho)
+                    print("State 3, invalid double consonant: \(c). Resetting state. TextStorage: \(textStorage)")
+                }
+            } else if chos.contains(cInt) {
+                setStateZero()
+                textStorage = String(c)
+                clear()
+                state = 1
+                cho = c
+                textStorage = String(cho)
+                print("State 3, new consonant: \(c). Resetting state. TextStorage: \(textStorage)")
+            } else {
+                var temp: Character = "\u{0000}"
+                if doubleJonFlag == "\u{0000}" {
+                    temp = jon
+                    jon = "\u{0000}"
+                    setStateZero()
+                    print("State 3, single final consonant: \(temp). Resetting state. TextStorage: \(textStorage)")
+                } else {
+                    temp = doubleJonFlag
+                    jon = jonFlag
+                    setStateZero()
+                    print("State 3, double final consonant flag: \(temp). Resetting state. TextStorage: \(textStorage)")
+                }
+                state = 2
+                clear()
+                cho = temp
+                jun = c
+                textStorage = removeFirstHangulSyllable(textStorage)
+                textStorage.append(String(makeHan()))
+                print("State 3, appended Hangul syllable: \(makeHan()). TextStorage: \(textStorage)")
+                return 2
+            }
+        default:
+            break
+        }
+        print("Commit finished with state: \(state). TextStorage: \(textStorage)")
+        return 0
+    }
 
-             default:
-                 break
-             }
-             return 0
-         }
 
     func removeFirstHangulSyllable(_ string: String) -> String {
         if string.isEmpty {
